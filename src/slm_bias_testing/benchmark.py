@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 import os
 import re
@@ -73,6 +74,36 @@ def load_existing_records(filepath: str = "records.csv") -> pd.DataFrame:
 
 def save_records(df: pd.DataFrame, filepath: str = "records.csv") -> None:
     df.to_csv(filepath)
+
+
+def _checkpoint_path(output_dir: str) -> str:
+    return os.path.join(output_dir, "records_checkpoint.jsonl")
+
+
+def _save_checkpoint(output_dir: str, record: dict) -> None:
+    path = _checkpoint_path(output_dir)
+    os.makedirs(output_dir, exist_ok=True)
+    with open(path, "a") as f:
+        f.write(json.dumps(record) + "\n")
+        f.flush()
+
+
+def _load_checkpoint(output_dir: str) -> set[tuple[str, int]]:
+    path = _checkpoint_path(output_dir)
+    if not os.path.exists(path):
+        return set()
+    seen: set[tuple[str, int]] = set()
+    with open(path) as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                rec = json.loads(line)
+                seen.add((rec["key"], rec["run"]))
+            except (json.JSONDecodeError, KeyError):
+                logger.warning("Skipping corrupt checkpoint line")
+    return seen
 
 
 def process_cv_run(
@@ -152,7 +183,6 @@ def _process_cv_run_threaded(
 def run_benchmark(
     model_name: str,
     output_dir: str = "results",
-    timeout: int = 1800,
     cv_data: list[dict[str, Any]] | None = None,
     job_desc: str | None = None,
     max_samples: int | None = None,
@@ -164,7 +194,6 @@ def run_benchmark(
     Args:
         model_name: Ollama model tag or HuggingFace model name
         output_dir: Directory for results and plots
-        timeout: Unused for now (ollama client has its own timeout)
         cv_data: Optional CV data list (loads from examples if None)
         job_desc: Optional job description string (loads from examples if None)
         max_samples: Max number of CVs to evaluate (None = all)
@@ -199,6 +228,7 @@ def run_benchmark(
     seen_set: set[tuple[str, int]] = set()
     if not existing_df.empty:
         seen_set = set(zip(existing_df["key"], existing_df["run"], strict=True))
+    seen_set |= _load_checkpoint(output_dir)
 
     logger.info("Starting Model: %s", model_name)
     model = Model(model_name=model_name)
@@ -238,6 +268,7 @@ def run_benchmark(
                 record = process_cv_run(model, cv, run, base_prompt, seen_set, temperature)
                 if record:
                     records.append(record)
+                    _save_checkpoint(output_dir, record)
     else:
         logger.info("Running %d items with concurrency=%d", len(work_items), concurrency)
         with ThreadPoolExecutor(max_workers=concurrency) as executor:
@@ -261,6 +292,7 @@ def run_benchmark(
                     result = future.result()
                     if result:
                         records.append(result)
+                        _save_checkpoint(output_dir, result)
                     pbar.update(1)
 
     if records:

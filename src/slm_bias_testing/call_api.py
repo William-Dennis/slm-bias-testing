@@ -47,8 +47,14 @@ class OllamaClient:
             if self._server is not None:
                 with contextlib.suppress(Exception):
                     self._server.stop()
-            self._server = OllamaServer(kill_existing=True)
-            self._server.start()
+            try:
+                self._server = OllamaServer(kill_existing=True)
+                self._server.start()
+            except Exception:
+                logger.error(
+                    "Ollama auto-restart failed — subsequent API calls will fail", exc_info=True
+                )
+                raise
             logger.info("Ollama restarted")
 
     @property
@@ -91,6 +97,7 @@ class Model:
 
     def _predict_ollama(self, input_text: str, temperature: float) -> str:
         max_retries = 3
+        start = time.monotonic()
         for attempt in range(max_retries):
             try:
                 response = self._ollama_client.client.chat(
@@ -102,6 +109,8 @@ class Model:
                     },
                     keep_alive=self.keep_alive,
                 )
+                elapsed = time.monotonic() - start
+                logger.debug("Ollama call completed in %.2fs (attempt %d)", elapsed, attempt + 1)
                 return response["message"]["content"]  # type: ignore[no-any-return]
             except Exception as e:
                 logger.warning(
@@ -114,7 +123,8 @@ class Model:
                     # Only restart on actual connection failure, not on every error
                     if "connect" in str(e).lower() or "refused" in str(e).lower():
                         self._ollama_client.ensure_running()
-                    time.sleep(2)
+                    sleep_time = min(2 ** (attempt + 1), 30)
+                    time.sleep(sleep_time)
                 else:
                     raise
         raise RuntimeError("Unreachable")
