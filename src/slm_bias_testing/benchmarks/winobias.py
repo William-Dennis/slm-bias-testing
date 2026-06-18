@@ -12,6 +12,9 @@ from slm_bias_testing.benchmarks import BaseBenchmark
 logger = logging.getLogger(__name__)
 
 
+_ARTICLES = frozenset({"the", "a", "an"})
+
+
 class WinoBiasBenchmark(BaseBenchmark):
     name = "winobias"
 
@@ -48,7 +51,7 @@ class WinoBiasBenchmark(BaseBenchmark):
 
     def _extract_entity_name(self, tokens: list[str], start: int, end: int) -> str:
         words = tokens[start : end + 1]
-        if words[0].lower() in ("the", "a", "an"):
+        if words[0].lower() in _ARTICLES:
             words = words[1:]
         return " ".join(words)
 
@@ -60,7 +63,7 @@ class WinoBiasBenchmark(BaseBenchmark):
                 start = j
                 while (
                     start > 0
-                    and tokens[start - 1].lower() not in ("the", "a", "an")
+                    and tokens[start - 1].lower() not in _ARTICLES
                     and tokens[start - 1][0].islower()
                 ):
                     start -= 1
@@ -97,7 +100,7 @@ class WinoBiasBenchmark(BaseBenchmark):
 
             entities = self._find_entities(tokens, pronoun_idx)
             if len(entities) != 2:
-                logger.debug("Skipping item: could not find 2 entities (%d found)", len(entities))
+                logger.info("Skipping item: could not find 2 entities (%d found)", len(entities))
                 continue
 
             correct_entity = self._extract_entity_name(tokens, coref[0], coref[1])

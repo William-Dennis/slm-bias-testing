@@ -100,12 +100,12 @@ log "Skipped (already done): $skipped"
 log "Failed: $failed"
 log "=== Done ==="
 
-# ── Commit & push results ────────────────────────────────────────────
+# ── Commit & push results (to branch, never to main) ─────────────────
 if [ "$completed" -gt 0 ]; then
     log "Syncing git state..."
 
-    # Push any local commits first (from earlier sessions that didn't push)
-    git push origin main 2>>"$LOG" || true
+    BRANCH="results/$(date +%Y-%m-%d)"
+    git checkout -b "$BRANCH" 2>>"$LOG" || git checkout "$BRANCH" 2>>"$LOG"
 
     # Stage new results (only JSON, not logs)
     git add "results/*/*/results.json" >> "$LOG" 2>&1
@@ -113,11 +113,12 @@ if [ "$completed" -gt 0 ]; then
     if ! git diff --cached --quiet; then
         git commit -m "chore: overnight benchmark results $(date +%Y-%m-%d)
 Results: $completed new, $skipped skipped, $failed failed" >> "$LOG" 2>&1
-        git push origin main >> "$LOG" 2>&1 || log "WARN: push failed — resolve manually"
-        log "Results committed and pushed"
+        git push origin "$BRANCH" >> "$LOG" 2>&1 || log "WARN: push failed — resolve manually"
+        log "Pushed to branch $BRANCH — create a PR to merge."
     else
         log "No new results to commit"
     fi
+    git checkout main >> "$LOG" 2>&1
 else
     log "Nothing new to push"
 fi

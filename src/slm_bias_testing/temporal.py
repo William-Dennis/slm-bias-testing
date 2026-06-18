@@ -64,6 +64,7 @@ def find_results(base_dir: str = "results") -> list[dict]:
                     with open(path) as fh:
                         data = json.load(fh)
                 except (json.JSONDecodeError, OSError):
+                    logger.warning("Skipping corrupted results file: %s", path)
                     continue
                 model = data.get("model")
                 benchmark = data.get("benchmark")
@@ -158,7 +159,14 @@ def plot_temporal(df: pd.DataFrame, output_dir: str = "figs") -> str:
 
         # Linear regression trend line
         if len(x) >= 3:
-            slope, intercept, r_val, p_val, _std_err = sp_stats.linregress(x, y)
+            mask = ~(np.isnan(x) | np.isnan(y))
+            if mask.sum() >= 3:
+                x = x[mask]
+                y = y[mask]
+                slope, intercept, r_val, p_val, _std_err = sp_stats.linregress(x, y)
+            else:
+                ax.set_title(BENCHMARK_LABELS.get(benchmark, benchmark), fontsize=10)
+                continue
             x_line = np.linspace(x.min(), x.max(), 100)
             y_line = slope * x_line + intercept
 

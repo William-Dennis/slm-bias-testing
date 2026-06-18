@@ -59,6 +59,9 @@ class BaseBenchmark(ABC):
         results_file = os.path.join(output_dir, f"{self.name}.json")
         with open(results_file, "w") as f:
             json.dump(results, f, indent=2)
+        ckpt = self._checkpoint_path(output_dir)
+        if os.path.exists(ckpt):
+            os.remove(ckpt)
 
     def load_results(self, output_dir: str) -> dict[str, Any] | None:
         results_file = os.path.join(output_dir, f"{self.name}.json")

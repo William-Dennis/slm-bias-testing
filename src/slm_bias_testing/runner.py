@@ -30,6 +30,7 @@ def pull_model(ollama_tag: str) -> bool:
         ["ollama", "pull", ollama_tag],
         capture_output=True,
         text=True,
+        timeout=600,
     )
     if result.returncode != 0:
         logger.error("Failed to pull model %s: %s", ollama_tag, result.stderr)
@@ -75,7 +76,6 @@ def run_benchmark_for_model(
             df = run_benchmark(
                 model_name=ollama_tag,
                 output_dir=results_dir,
-                timeout=timeout,
                 max_samples=max_samples,
                 concurrency=concurrency,
             )
@@ -143,8 +143,10 @@ def run_benchmark_for_model(
             if "anti_accuracy" in results:
                 summary["anti_accuracy"] = results["anti_accuracy"]
 
-        with open(results_file, "w") as f:
+        tmp_path = results_file + ".tmp"
+        with open(tmp_path, "w") as f:
             json.dump(summary, f, indent=2)
+        os.rename(tmp_path, results_file)
 
         logger.info("Saved results for %s/%s", model_name, bench)
 
@@ -170,9 +172,10 @@ def main() -> None:
         help="Concurrent prediction threads for cv-screening (default: 1). "
         "Set OLLAMA_NUM_PARALLEL on the server to match.",
     )
+    parser.add_argument("--verbose", action="store_true", help="Enable debug logging")
     args = parser.parse_args()
 
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO)
 
     invalid = [m for m in args.models if m not in MODELS]
     if invalid:

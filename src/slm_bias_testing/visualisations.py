@@ -63,6 +63,7 @@ def _load_benchmark_data(path: str, benchmark: str) -> dict[str, Any] | None:
         with open(path) as fh:
             return json.load(fh)  # type: ignore[no-any-return]
     except (json.JSONDecodeError, OSError):
+        logger.warning("Skipping corrupted results file: %s", path)
         return None
 
 

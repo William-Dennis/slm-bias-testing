@@ -42,6 +42,7 @@ class StereoSetBenchmark(BaseBenchmark):
                 return max(0, min(100, score))
         except Exception:
             logger.exception("Failed to score continuation")
+        logger.warning("Using default score 50 for: %s / %s", context[:50], continuation[:50])
         return 50
 
     def evaluate(
@@ -78,7 +79,7 @@ class StereoSetBenchmark(BaseBenchmark):
 
             # Skip if we can't find both
             if stereotype_text is None or anti_stereotype_text is None:
-                logger.debug(
+                logger.info(
                     "Skipping item %s: missing stereotype or anti-stereotype", item.get("id")
                 )
                 continue
