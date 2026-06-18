@@ -26,12 +26,16 @@ def get_benchmarks(benchmark: str) -> list[str]:
 def pull_model(ollama_tag: str) -> bool:
     """Pull an Ollama model image if not already present."""
     logger.info("Pulling model %s ...", ollama_tag)
-    result = subprocess.run(
-        ["ollama", "pull", ollama_tag],
-        capture_output=True,
-        text=True,
-        timeout=600,
-    )
+    try:
+        result = subprocess.run(
+            ["ollama", "pull", ollama_tag],
+            capture_output=True,
+            text=True,
+            timeout=600,
+        )
+    except subprocess.TimeoutExpired:
+        logger.error("Timed out pulling model %s after 600s", ollama_tag)
+        return False
     if result.returncode != 0:
         logger.error("Failed to pull model %s: %s", ollama_tag, result.stderr)
         return False

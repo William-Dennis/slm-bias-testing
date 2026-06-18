@@ -33,7 +33,7 @@ class OllamaServer:
         else:
             try:
                 subprocess.run(
-                    ["pkill", "-f", "ollama serve --"],
+                    ["pkill", "-f", "ollama serve"],
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
                     check=False,

@@ -103,9 +103,13 @@ log "=== Done ==="
 # ── Commit & push results (to branch, never to main) ─────────────────
 if [ "$completed" -gt 0 ]; then
     log "Syncing git state..."
+    git fetch origin >> "$LOG" 2>&1
 
     BRANCH="results/$(date +%Y-%m-%d)"
-    git checkout -b "$BRANCH" 2>>"$LOG" || git checkout "$BRANCH" 2>>"$LOG"
+    if ! git checkout -b "$BRANCH" 2>>"$LOG" && ! git checkout "$BRANCH" 2>>"$LOG"; then
+        log "ERROR: Failed to checkout branch $BRANCH"
+        exit 1
+    fi
 
     # Stage new results (only JSON, not logs)
     git add "results/*/*/results.json" >> "$LOG" 2>&1

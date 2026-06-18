@@ -57,8 +57,10 @@ class BaseBenchmark(ABC):
     def save_results(self, results: dict[str, Any], output_dir: str) -> None:
         os.makedirs(output_dir, exist_ok=True)
         results_file = os.path.join(output_dir, f"{self.name}.json")
-        with open(results_file, "w") as f:
+        tmp_file = results_file + ".tmp"
+        with open(tmp_file, "w") as f:
             json.dump(results, f, indent=2)
+        os.rename(tmp_file, results_file)
         ckpt = self._checkpoint_path(output_dir)
         if os.path.exists(ckpt):
             os.remove(ckpt)

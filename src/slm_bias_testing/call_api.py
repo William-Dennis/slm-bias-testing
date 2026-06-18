@@ -112,7 +112,7 @@ class Model:
                 elapsed = time.monotonic() - start
                 logger.debug("Ollama call completed in %.2fs (attempt %d)", elapsed, attempt + 1)
                 return response["message"]["content"]  # type: ignore[no-any-return]
-            except (ollama.ResponseError, ConnectionError, TimeoutError, OSError) as e:
+            except Exception as e:
                 logger.warning(
                     "Ollama call failed (attempt %d/%d): %s",
                     attempt + 1,
@@ -123,7 +123,7 @@ class Model:
                     # Only restart on actual connection failure, not on every error
                     if "connect" in str(e).lower() or "refused" in str(e).lower():
                         self._ollama_client.ensure_running()
-                    sleep_time = min(2**attempt, 30)
+                    sleep_time = min(2 ** (attempt + 1), 30)
                     time.sleep(sleep_time)
                 else:
                     raise

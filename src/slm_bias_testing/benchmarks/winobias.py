@@ -91,21 +91,7 @@ class WinoBiasBenchmark(BaseBenchmark):
 
         results = []
         for idx, item in enumerate(tqdm(data, desc="WinoBias")):
-            tokens = item["tokens"]
-            coref = [int(x) for x in item["coreference_clusters"]]
-            sent = " ".join(tokens)
-            pronoun_idx = coref[2]
-            pronoun = tokens[pronoun_idx]
-            config = item["config"]
-
-            entities = self._find_entities(tokens, pronoun_idx)
-            if len(entities) != 2:
-                logger.info("Skipping item: could not find 2 entities (%d found)", len(entities))
-                continue
-
-            correct_entity = self._extract_entity_name(tokens, coref[0], coref[1])
-
-            # Check checkpoint first
+            # Check checkpoint first — avoids unnecessary entity extraction
             if idx in checkpoint:
                 c = checkpoint[idx]
                 results.append(
@@ -122,6 +108,20 @@ class WinoBiasBenchmark(BaseBenchmark):
                     }
                 )
                 continue
+
+            tokens = item["tokens"]
+            coref = [int(x) for x in item["coreference_clusters"]]
+            sent = " ".join(tokens)
+            pronoun_idx = coref[2]
+            pronoun = tokens[pronoun_idx]
+            config = item["config"]
+
+            entities = self._find_entities(tokens, pronoun_idx)
+            if len(entities) != 2:
+                logger.info("Skipping item: could not find 2 entities (%d found)", len(entities))
+                continue
+
+            correct_entity = self._extract_entity_name(tokens, coref[0], coref[1])
 
             prompt = (
                 f'In the sentence "{sent}", who is "{pronoun}" referring to? '
