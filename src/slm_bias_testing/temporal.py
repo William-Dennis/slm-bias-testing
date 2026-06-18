@@ -166,6 +166,8 @@ def plot_temporal(df: pd.DataFrame, output_dir: str = "figs") -> str:
                 slope, intercept, r_val, p_val, _std_err = sp_stats.linregress(x, y)
             else:
                 ax.set_title(BENCHMARK_LABELS.get(benchmark, benchmark), fontsize=10)
+                ax.set_xlabel("Release Date")
+                ax.legend(fontsize=8, loc="best")
                 continue
             x_line = np.linspace(x.min(), x.max(), 100)
             y_line = slope * x_line + intercept

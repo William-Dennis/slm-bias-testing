@@ -60,7 +60,7 @@ class BaseBenchmark(ABC):
         tmp_file = results_file + ".tmp"
         with open(tmp_file, "w") as f:
             json.dump(results, f, indent=2)
-        os.rename(tmp_file, results_file)
+        os.replace(tmp_file, results_file)
         ckpt = self._checkpoint_path(output_dir)
         if os.path.exists(ckpt):
             os.remove(ckpt)
