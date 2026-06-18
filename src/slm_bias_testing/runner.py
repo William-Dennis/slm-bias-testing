@@ -26,11 +26,16 @@ def get_benchmarks(benchmark: str) -> list[str]:
 def pull_model(ollama_tag: str) -> bool:
     """Pull an Ollama model image if not already present."""
     logger.info("Pulling model %s ...", ollama_tag)
-    result = subprocess.run(
-        ["ollama", "pull", ollama_tag],
-        capture_output=True,
-        text=True,
-    )
+    try:
+        result = subprocess.run(
+            ["ollama", "pull", ollama_tag],
+            capture_output=True,
+            text=True,
+            timeout=600,
+        )
+    except subprocess.TimeoutExpired:
+        logger.error("Timed out pulling model %s after 600s", ollama_tag)
+        return False
     if result.returncode != 0:
         logger.error("Failed to pull model %s: %s", ollama_tag, result.stderr)
         return False
@@ -75,7 +80,6 @@ def run_benchmark_for_model(
             df = run_benchmark(
                 model_name=ollama_tag,
                 output_dir=results_dir,
-                timeout=timeout,
                 max_samples=max_samples,
                 concurrency=concurrency,
             )
@@ -119,7 +123,7 @@ def run_benchmark_for_model(
                 logger.error("Unknown benchmark: %s", bench)
                 continue
 
-            results = bm.evaluate(model, max_samples=max_samples)
+            results = bm.evaluate(model, max_samples=max_samples, output_dir=results_dir)
             bm.save_results(results, results_dir)
 
             summary = {
@@ -143,8 +147,10 @@ def run_benchmark_for_model(
             if "anti_accuracy" in results:
                 summary["anti_accuracy"] = results["anti_accuracy"]
 
-        with open(results_file, "w") as f:
+        tmp_path = results_file + ".tmp"
+        with open(tmp_path, "w") as f:
             json.dump(summary, f, indent=2)
+        os.rename(tmp_path, results_file)
 
         logger.info("Saved results for %s/%s", model_name, bench)
 
@@ -170,9 +176,10 @@ def main() -> None:
         help="Concurrent prediction threads for cv-screening (default: 1). "
         "Set OLLAMA_NUM_PARALLEL on the server to match.",
     )
+    parser.add_argument("--verbose", action="store_true", help="Enable debug logging")
     args = parser.parse_args()
 
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO)
 
     invalid = [m for m in args.models if m not in MODELS]
     if invalid:

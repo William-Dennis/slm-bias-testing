@@ -2,9 +2,11 @@ keys.py
 
 # Experiment results
 results/
+records.csv
 
-# Generated figures (temporal_trends.png is committed for README)
-figs/family_comparison.png
+# Generated figures
+figs/
+plots/
 
 # IDE
 .idea/

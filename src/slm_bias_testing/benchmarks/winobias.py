@@ -12,6 +12,9 @@ from slm_bias_testing.benchmarks import BaseBenchmark
 logger = logging.getLogger(__name__)
 
 
+_ARTICLES = frozenset({"the", "a", "an"})
+
+
 class WinoBiasBenchmark(BaseBenchmark):
     name = "winobias"
 
@@ -48,7 +51,7 @@ class WinoBiasBenchmark(BaseBenchmark):
 
     def _extract_entity_name(self, tokens: list[str], start: int, end: int) -> str:
         words = tokens[start : end + 1]
-        if words[0].lower() in ("the", "a", "an"):
+        if words[0].lower() in _ARTICLES:
             words = words[1:]
         return " ".join(words)
 
@@ -60,7 +63,7 @@ class WinoBiasBenchmark(BaseBenchmark):
                 start = j
                 while (
                     start > 0
-                    and tokens[start - 1].lower() not in ("the", "a", "an")
+                    and tokens[start - 1].lower() not in _ARTICLES
                     and tokens[start - 1][0].islower()
                 ):
                     start -= 1
@@ -73,13 +76,39 @@ class WinoBiasBenchmark(BaseBenchmark):
 
         return [self._extract_entity_name(tokens, s, e) for s, e in positions]
 
-    def evaluate(self, model: Any, max_samples: int | None = None) -> dict[str, Any]:
+    def evaluate(
+        self, model: Any, max_samples: int | None = None, output_dir: str | None = None
+    ) -> dict[str, Any]:
         data = self.load_dataset()
         if max_samples is not None:
             data = data[:max_samples]
 
+        # Load checkpoint — maps item_idx → completed result
+        checkpoint: dict[int, dict[str, Any]] = {}
+        if output_dir:
+            for call in self._load_checkpoint(output_dir):
+                checkpoint[call["item_idx"]] = call
+
         results = []
-        for item in tqdm(data, desc="WinoBias"):
+        for idx, item in enumerate(tqdm(data, desc="WinoBias")):
+            # Check checkpoint first — avoids unnecessary entity extraction
+            if idx in checkpoint:
+                c = checkpoint[idx]
+                results.append(
+                    {
+                        "sentence": c["sentence"],
+                        "config": c["config"],
+                        "pronoun": c["pronoun"],
+                        "entity1": c["entity1"],
+                        "entity2": c["entity2"],
+                        "correct_antecedent": c["correct_antecedent"],
+                        "model_answer": c["model_answer"],
+                        "correct": c["correct"],
+                        "is_pro": c["is_pro"],
+                    }
+                )
+                continue
+
             tokens = item["tokens"]
             coref = [int(x) for x in item["coreference_clusters"]]
             sent = " ".join(tokens)
@@ -89,7 +118,7 @@ class WinoBiasBenchmark(BaseBenchmark):
 
             entities = self._find_entities(tokens, pronoun_idx)
             if len(entities) != 2:
-                logger.debug("Skipping item: could not find 2 entities (%d found)", len(entities))
+                logger.info("Skipping item: could not find 2 entities (%d found)", len(entities))
                 continue
 
             correct_entity = self._extract_entity_name(tokens, coref[0], coref[1])
@@ -114,19 +143,28 @@ class WinoBiasBenchmark(BaseBenchmark):
 
             is_pro = "pro" in config
 
-            results.append(
-                {
-                    "sentence": sent,
-                    "config": config,
-                    "pronoun": pronoun,
-                    "entity1": entities[0],
-                    "entity2": entities[1],
-                    "correct_antecedent": correct_entity,
-                    "model_answer": answer,
-                    "correct": correct,
-                    "is_pro": is_pro,
-                }
-            )
+            result = {
+                "sentence": sent,
+                "config": config,
+                "pronoun": pronoun,
+                "entity1": entities[0],
+                "entity2": entities[1],
+                "correct_antecedent": correct_entity,
+                "model_answer": answer,
+                "correct": correct,
+                "is_pro": is_pro,
+            }
+            results.append(result)
+
+            # Save after every LLM call
+            if output_dir:
+                self._save_call(
+                    output_dir,
+                    {
+                        "item_idx": idx,
+                        **result,
+                    },
+                )
 
         return self._compute_metrics(results)
 

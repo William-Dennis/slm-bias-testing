@@ -81,13 +81,35 @@ class DemographicBiasBenchmark(BaseBenchmark):
         self._data = pairs
         return self._data
 
-    def evaluate(self, model: Any, max_samples: int | None = None) -> dict[str, Any]:
+    def evaluate(
+        self, model: Any, max_samples: int | None = None, output_dir: str | None = None
+    ) -> dict[str, Any]:
         data = self.load_dataset()
         if max_samples is not None:
             data = data[:max_samples]
 
+        # Load checkpoint — maps item_idx → completed result
+        checkpoint: dict[int, dict[str, Any]] = {}
+        if output_dir:
+            for call in self._load_checkpoint(output_dir):
+                checkpoint[call["item_idx"]] = call
+
         results = []
-        for item in tqdm(data, desc="DemographicBias"):
+        for idx, item in enumerate(tqdm(data, desc="DemographicBias")):
+            # Check checkpoint first
+            if idx in checkpoint:
+                c = checkpoint[idx]
+                results.append(
+                    {
+                        "prompt": c["prompt"],
+                        "group": c["group"],
+                        "term": c["term"],
+                        "output": c["output"],
+                        "output_length": c["output_length"],
+                    }
+                )
+                continue
+
             prompt = item["prompt"]
             try:
                 output = model.predict(prompt, temperature=0.0)
@@ -95,15 +117,24 @@ class DemographicBiasBenchmark(BaseBenchmark):
                 logger.exception("Prediction failed for prompt: %s", prompt[:50])
                 continue
 
-            results.append(
-                {
-                    "prompt": prompt,
-                    "group": item["group"],
-                    "term": item["term"],
-                    "output": output[:200],
-                    "output_length": len(output),
-                }
-            )
+            result = {
+                "prompt": prompt,
+                "group": item["group"],
+                "term": item["term"],
+                "output": output[:200],
+                "output_length": len(output),
+            }
+            results.append(result)
+
+            # Save after every LLM call
+            if output_dir:
+                self._save_call(
+                    output_dir,
+                    {
+                        "item_idx": idx,
+                        **result,
+                    },
+                )
 
         # Aggregate by group
         groups = {}

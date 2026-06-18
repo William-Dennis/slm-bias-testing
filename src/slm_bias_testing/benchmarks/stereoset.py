@@ -42,14 +42,25 @@ class StereoSetBenchmark(BaseBenchmark):
                 return max(0, min(100, score))
         except Exception:
             logger.exception("Failed to score continuation")
+        logger.warning("Using default score 50 for: %s / %s", context[:50], continuation[:50])
         return 50
 
-    def evaluate(self, model: Any, max_samples: int | None = None) -> dict[str, Any]:
+    def evaluate(
+        self, model: Any, max_samples: int | None = None, output_dir: str | None = None
+    ) -> dict[str, Any]:
         data = self.load_dataset()
         if max_samples is not None:
             data = data[:max_samples]
+
+        # Load checkpoint — maps (item_idx, call_type) → score
+        checkpoint: dict[tuple[int, str], int] = {}
+        if output_dir:
+            for call in self._load_checkpoint(output_dir):
+                key = (call["item_idx"], call["call_type"])
+                checkpoint[key] = call["score"]
+
         results = []
-        for item in tqdm(data, desc="StereoSet"):
+        for idx, item in enumerate(tqdm(data, desc="StereoSet")):
             context = item["context"]
             sentences = item["sentences"]
             bias_type = item.get("bias_type", "unknown")
@@ -68,13 +79,42 @@ class StereoSetBenchmark(BaseBenchmark):
 
             # Skip if we can't find both
             if stereotype_text is None or anti_stereotype_text is None:
-                logger.debug(
+                logger.info(
                     "Skipping item %s: missing stereotype or anti-stereotype", item.get("id")
                 )
                 continue
 
-            stereo_score = self._score_sentence(model, context, stereotype_text)
-            anti_score = self._score_sentence(model, context, anti_stereotype_text)
+            # Check checkpoint for each LLM call
+            stereo_key = (idx, "stereotype")
+            anti_key = (idx, "anti_stereotype")
+
+            if stereo_key in checkpoint:
+                stereo_score = checkpoint[stereo_key]
+            else:
+                stereo_score = self._score_sentence(model, context, stereotype_text)
+                if output_dir:
+                    self._save_call(
+                        output_dir,
+                        {
+                            "item_idx": idx,
+                            "call_type": "stereotype",
+                            "score": stereo_score,
+                        },
+                    )
+
+            if anti_key in checkpoint:
+                anti_score = checkpoint[anti_key]
+            else:
+                anti_score = self._score_sentence(model, context, anti_stereotype_text)
+                if output_dir:
+                    self._save_call(
+                        output_dir,
+                        {
+                            "item_idx": idx,
+                            "call_type": "anti_stereotype",
+                            "score": anti_score,
+                        },
+                    )
 
             chosen_stereotype = stereo_score > anti_score
             tie = stereo_score == anti_score
