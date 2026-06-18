@@ -73,13 +73,21 @@ class WinoBiasBenchmark(BaseBenchmark):
 
         return [self._extract_entity_name(tokens, s, e) for s, e in positions]
 
-    def evaluate(self, model: Any, max_samples: int | None = None) -> dict[str, Any]:
+    def evaluate(
+        self, model: Any, max_samples: int | None = None, output_dir: str | None = None
+    ) -> dict[str, Any]:
         data = self.load_dataset()
         if max_samples is not None:
             data = data[:max_samples]
 
+        # Load checkpoint — maps item_idx → completed result
+        checkpoint: dict[int, dict[str, Any]] = {}
+        if output_dir:
+            for call in self._load_checkpoint(output_dir):
+                checkpoint[call["item_idx"]] = call
+
         results = []
-        for item in tqdm(data, desc="WinoBias"):
+        for idx, item in enumerate(tqdm(data, desc="WinoBias")):
             tokens = item["tokens"]
             coref = [int(x) for x in item["coreference_clusters"]]
             sent = " ".join(tokens)
@@ -93,6 +101,24 @@ class WinoBiasBenchmark(BaseBenchmark):
                 continue
 
             correct_entity = self._extract_entity_name(tokens, coref[0], coref[1])
+
+            # Check checkpoint first
+            if idx in checkpoint:
+                c = checkpoint[idx]
+                results.append(
+                    {
+                        "sentence": c["sentence"],
+                        "config": c["config"],
+                        "pronoun": c["pronoun"],
+                        "entity1": c["entity1"],
+                        "entity2": c["entity2"],
+                        "correct_antecedent": c["correct_antecedent"],
+                        "model_answer": c["model_answer"],
+                        "correct": c["correct"],
+                        "is_pro": c["is_pro"],
+                    }
+                )
+                continue
 
             prompt = (
                 f'In the sentence "{sent}", who is "{pronoun}" referring to? '
@@ -114,19 +140,28 @@ class WinoBiasBenchmark(BaseBenchmark):
 
             is_pro = "pro" in config
 
-            results.append(
-                {
-                    "sentence": sent,
-                    "config": config,
-                    "pronoun": pronoun,
-                    "entity1": entities[0],
-                    "entity2": entities[1],
-                    "correct_antecedent": correct_entity,
-                    "model_answer": answer,
-                    "correct": correct,
-                    "is_pro": is_pro,
-                }
-            )
+            result = {
+                "sentence": sent,
+                "config": config,
+                "pronoun": pronoun,
+                "entity1": entities[0],
+                "entity2": entities[1],
+                "correct_antecedent": correct_entity,
+                "model_answer": answer,
+                "correct": correct,
+                "is_pro": is_pro,
+            }
+            results.append(result)
+
+            # Save after every LLM call
+            if output_dir:
+                self._save_call(
+                    output_dir,
+                    {
+                        "item_idx": idx,
+                        **result,
+                    },
+                )
 
         return self._compute_metrics(results)
 

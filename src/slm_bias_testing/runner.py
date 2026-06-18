@@ -119,7 +119,7 @@ def run_benchmark_for_model(
                 logger.error("Unknown benchmark: %s", bench)
                 continue
 
-            results = bm.evaluate(model, max_samples=max_samples)
+            results = bm.evaluate(model, max_samples=max_samples, output_dir=results_dir)
             bm.save_results(results, results_dir)
 
             summary = {
