@@ -101,7 +101,7 @@ def _load_checkpoint(output_dir: str) -> set[tuple[str, int]]:
             try:
                 rec = json.loads(line)
                 seen.add((rec["key"], rec["run"]))
-            except (json.JSONDecodeError, KeyError):
+            except (json.JSONDecodeError, KeyError, UnicodeDecodeError):
                 logger.warning("Skipping corrupt checkpoint line")
     return seen
 
@@ -269,6 +269,7 @@ def run_benchmark(
                 if record:
                     records.append(record)
                     _save_checkpoint(output_dir, record)
+                    seen_set.add((record["key"], record["run"]))
     else:
         logger.info("Running %d items with concurrency=%d", len(work_items), concurrency)
         with ThreadPoolExecutor(max_workers=concurrency) as executor:

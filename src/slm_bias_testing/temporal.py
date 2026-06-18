@@ -63,7 +63,7 @@ def find_results(base_dir: str = "results") -> list[dict]:
                 try:
                     with open(path) as fh:
                         data = json.load(fh)
-                except (json.JSONDecodeError, OSError):
+                except (json.JSONDecodeError, OSError, UnicodeDecodeError):
                     logger.warning("Skipping corrupted results file: %s", path)
                     continue
                 model = data.get("model")
