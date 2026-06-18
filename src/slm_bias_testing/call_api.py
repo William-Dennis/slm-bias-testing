@@ -6,14 +6,10 @@ import contextlib
 import logging
 import os
 import time
-from typing import TYPE_CHECKING
 
 import ollama
 
 from slm_bias_testing.ollama_setup import OllamaServer
-
-if TYPE_CHECKING:
-    from slm_bias_testing.transformers import Model as TransformerModel
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +59,7 @@ class OllamaClient:
 
 
 class Model:
-    """Unified prediction interface for Ollama and Transformers providers."""
+    """Ollama prediction interface with retry and auto-restart."""
 
     def __init__(
         self,
@@ -73,29 +69,16 @@ class Model:
         num_ctx: int | None = None,
         keep_alive: float | None = None,
     ) -> None:
+        if provider != "ollama":
+            raise ValueError(f"Only 'ollama' provider supported, got '{provider}'")
         self.model_name = model_name
-        self.provider = provider
         self.num_ctx = num_ctx if num_ctx is not None else DEFAULT_NUM_CTX
         self.keep_alive = keep_alive if keep_alive is not None else DEFAULT_KEEP_ALIVE
         self._ollama_client = ollama_client or OllamaClient()
-        self._transformer_model: TransformerModel | None = None
-
-        if provider == "ollama":
-            self._ollama_client.ensure_running()
-        elif provider == "transformers":
-            from slm_bias_testing.transformers import Model as TransformerModel
-
-            self._transformer_model = TransformerModel(model_name=self.model_name)
+        self._ollama_client.ensure_running()
 
     def predict(self, input_text: str, temperature: float = 0.0) -> str:
-        """Run a single prediction. Raises on provider mismatch."""
-        if self.provider == "ollama":
-            return self._predict_ollama(input_text, temperature)
-        if self.provider == "transformers":
-            return self._predict_transformers(input_text, temperature)
-        raise ValueError(f"Unknown provider '{self.provider}' for model '{self.model_name}'")
-
-    def _predict_ollama(self, input_text: str, temperature: float) -> str:
+        """Run a single prediction via Ollama."""
         max_retries = 3
         start = time.monotonic()
         for attempt in range(max_retries):
@@ -113,23 +96,18 @@ class Model:
                 logger.debug("Ollama call completed in %.2fs (attempt %d)", elapsed, attempt + 1)
                 return response["message"]["content"]  # type: ignore[no-any-return]
             except Exception as e:
-                logger.warning(
-                    "Ollama call failed (attempt %d/%d): %s",
-                    attempt + 1,
-                    max_retries,
-                    e,
-                )
                 if attempt < max_retries - 1:
+                    logger.warning(
+                        "Ollama call failed (attempt %d/%d): %s", attempt + 1, max_retries, e
+                    )
                     # Only restart on actual connection failure, not on every error
                     if "connect" in str(e).lower() or "refused" in str(e).lower():
                         self._ollama_client.ensure_running()
                     sleep_time = min(2 ** (attempt + 1), 30)
                     time.sleep(sleep_time)
                 else:
+                    logger.error(
+                        "Ollama call failed after %d attempts: %s", max_retries, e, exc_info=True
+                    )
                     raise
         raise RuntimeError("Unreachable")
-
-    def _predict_transformers(self, input_text: str, temperature: float) -> str:
-        if self._transformer_model is None:
-            raise RuntimeError("Transformers model not initialised")
-        return self._transformer_model.predict(input_text, temperature)

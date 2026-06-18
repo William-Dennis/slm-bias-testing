@@ -55,11 +55,13 @@ def pairwise_comparisons(
     groups = df[group_col].dropna().unique()
     if len(groups) < 2:
         return pd.DataFrame()
+    # Pre-split to avoid redundant boolean masks per pair
+    grouped = {g: df.loc[df[group_col] == g, score_col].dropna() for g in groups}
     rows = []
     for i in range(len(groups)):
         for j in range(i + 1, len(groups)):
-            g1 = df.loc[df[group_col] == groups[i], score_col].dropna()
-            g2 = df.loc[df[group_col] == groups[j], score_col].dropna()
+            g1 = grouped[groups[i]]
+            g2 = grouped[groups[j]]
             if len(g1) < 2 or len(g2) < 2:
                 continue
             d = cohens_d(g1, g2)

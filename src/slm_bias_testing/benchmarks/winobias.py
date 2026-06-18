@@ -41,7 +41,8 @@ class WinoBiasBenchmark(BaseBenchmark):
         occ = set()
         if self._data is None:
             self.load_dataset()
-        assert self._data is not None
+        if self._data is None:
+            raise RuntimeError("Failed to load WinoBias dataset")
         for item in self._data:
             tokens = item["tokens"]
             coref = [int(x) for x in item["coreference_clusters"]]

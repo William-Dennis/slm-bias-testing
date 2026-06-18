@@ -85,6 +85,9 @@ def _extract_score(data: dict[str, Any], benchmark: str) -> float | None:
 
 def load_all_results(base_dir: str = "results") -> pd.DataFrame:
     """Scan results directory and build a DataFrame of all model x benchmark scores."""
+    if not os.path.isdir(base_dir):
+        logger.warning("Results directory not found: %s", base_dir)
+        return pd.DataFrame()
     rows: list[dict[str, Any]] = []
     benchmark_files = {
         "stereoset": "stereoset.json",

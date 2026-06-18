@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import subprocess
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from slm_bias_testing.registry import MODELS, get_model
@@ -103,14 +104,6 @@ def run_benchmark_for_model(
                 from slm_bias_testing.benchmarks.stereoset import StereoSetBenchmark
 
                 bm: BaseBenchmark = StereoSetBenchmark()
-            elif bench == "crows-pairs":
-                from slm_bias_testing.benchmarks.crows_pairs import CrowsPairsBenchmark
-
-                bm = CrowsPairsBenchmark()
-            elif bench == "bbq":
-                from slm_bias_testing.benchmarks.bbq import BBQBiasBenchmark
-
-                bm = BBQBiasBenchmark()
             elif bench == "demographic-bias":
                 from slm_bias_testing.benchmarks.demographic_bias import DemographicBiasBenchmark
 
@@ -132,7 +125,7 @@ def run_benchmark_for_model(
                 "benchmark": bench,
                 "n_examples": results.get("n_examples", 0),
                 "max_samples": max_samples,
-                "timestamp": __import__("datetime").datetime.now().isoformat(),
+                "timestamp": datetime.now().isoformat(),
             }
             if "overall_stereotype_score" in results:
                 summary["overall_stereotype_score"] = results["overall_stereotype_score"]
@@ -150,7 +143,7 @@ def run_benchmark_for_model(
         tmp_path = results_file + ".tmp"
         with open(tmp_path, "w") as f:
             json.dump(summary, f, indent=2)
-        os.rename(tmp_path, results_file)
+        os.replace(tmp_path, results_file)
 
         logger.info("Saved results for %s/%s", model_name, bench)
 

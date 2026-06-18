@@ -10,7 +10,6 @@ from slm_bias_testing.call_api import (
     DEFAULT_KEEP_ALIVE,
     DEFAULT_NUM_CTX,
     LLM_MODEL,
-    PROVIDER,
     Model,
     OllamaClient,
 )
@@ -42,14 +41,13 @@ class TestModelInit:
         with patch.object(OllamaClient, "ensure_running"):
             model = Model()
         assert model.model_name == LLM_MODEL
-        assert model.provider == PROVIDER
         assert model.num_ctx == DEFAULT_NUM_CTX
         assert model.keep_alive == DEFAULT_KEEP_ALIVE
 
     def test_model_init_custom(self):
-        model = Model(model_name="custom-model", provider="custom", num_ctx=4096, keep_alive=10.0)
+        with patch.object(OllamaClient, "ensure_running"):
+            model = Model(model_name="custom-model", num_ctx=4096, keep_alive=10.0)
         assert model.model_name == "custom-model"
-        assert model.provider == "custom"
         assert model.num_ctx == 4096
         assert model.keep_alive == 10.0
 
@@ -63,9 +61,10 @@ class TestModelInit:
 
 class TestModelPredict:
     def test_predict_unknown_provider(self):
-        model = Model(model_name="test", provider="unknown")
-        with pytest.raises(ValueError, match="Unknown provider"):
-            model.predict("hello")
+        mock_client = MagicMock(spec=OllamaClient)
+        mock_client.ensure_running = MagicMock()
+        with pytest.raises(ValueError, match="Only 'ollama' provider supported"):
+            Model(model_name="test", provider="unknown", ollama_client=mock_client)
 
     def test_predict_ollama_success(self):
         mock_client = MagicMock(spec=OllamaClient)
@@ -96,28 +95,3 @@ class TestModelPredict:
         # Connection error should trigger ensure_running restart
         assert mock_client.ensure_running.call_count >= 1
         assert mock_client.client.chat.call_count == 2
-
-    def test_predict_transformers(self):
-        mock_client = MagicMock(spec=OllamaClient)
-        mock_client.ensure_running = MagicMock()
-
-        mock_transformer = MagicMock()
-        mock_transformer.predict.return_value = "transformer output"
-
-        with patch("slm_bias_testing.transformers.Model", mock_transformer):
-            model = Model(model_name="test", provider="transformers", ollama_client=mock_client)
-        # Override _transformer_model to the mock (bypasses real init)
-        model._transformer_model = mock_transformer
-        result = model.predict("hello")
-        assert result == "transformer output"
-
-    def test_predict_transformers_not_initialised(self):
-        mock_client = MagicMock(spec=OllamaClient)
-        mock_client.ensure_running = MagicMock()
-
-        mock_transformer = MagicMock()
-        with patch("slm_bias_testing.transformers.Model", mock_transformer):
-            model = Model(model_name="test", provider="transformers", ollama_client=mock_client)
-        model._transformer_model = None
-        with pytest.raises(RuntimeError, match="not initialised"):
-            model.predict("hello")

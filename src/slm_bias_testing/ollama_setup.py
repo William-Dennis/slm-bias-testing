@@ -48,7 +48,7 @@ class OllamaServer:
         self.process = subprocess.Popen(
             ["ollama", "serve"],
             stdout=subprocess.DEVNULL,
-            stderr=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
         )
         self._wait_for_server()
         atexit.register(self.stop)
@@ -63,20 +63,13 @@ class OllamaServer:
                     return
             except (urllib.error.URLError, OSError):
                 time.sleep(interval)
-        # Terminate the process and read stderr via communicate()
-        stderr_output = ""
+        # Timeout — kill the process
         if self.process:
             try:
-                _stdout, stderr_bytes = self.process.communicate(timeout=5)
-                stderr_output = (
-                    stderr_bytes.decode("utf-8", errors="replace") if stderr_bytes else ""
-                )
-            except Exception:
-                logger.exception("Failed to read ollama server stderr")
                 self.process.kill()
+            except Exception:
+                logger.exception("Failed to kill ollama server process")
             self.process = None
-        if stderr_output:
-            logger.error("Ollama server stderr:\n%s", stderr_output)
         raise RuntimeError(f"Ollama server did not start within {timeout} seconds")
 
     def stop(self) -> None:
