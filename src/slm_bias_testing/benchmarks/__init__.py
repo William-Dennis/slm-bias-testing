@@ -29,7 +29,7 @@ class BaseBenchmark(ABC):
                 f.write(json.dumps(call_data) + "\n")
                 f.flush()
         except OSError as e:
-            logger.warning("Failed to write checkpoint: %s", e)
+            logger.error("Failed to write checkpoint: %s", e)
 
     def _load_checkpoint(self, output_dir: str) -> list[dict[str, Any]]:
         """Load all checkpointed call results (JSONL, one dict per line)."""

@@ -40,7 +40,7 @@ def _check_ollama():
     import urllib.error
     import urllib.request
 
-    url = "http://localhost:11434/api/tags"
+    url = f"http://{os.environ.get('OLLAMA_HOST', 'localhost:11434')}/api/tags"
     for attempt in range(5):
         try:
             with urllib.request.urlopen(url, timeout=5):
@@ -115,7 +115,7 @@ def run_benchmarks(models, benchmarks, output_dir, max_samples, timeout):
                         except (json.JSONDecodeError, OSError) as e:
                             logger.warning("Corrupt results file %s: %s", results_file, e)
                 else:
-                    logger.error("Failed (exit %d): %s", result.returncode, result.stderr[-500:])
+                    logger.error("Failed (exit %d): %s", result.returncode, result.stderr[-1000:])
             except subprocess.TimeoutExpired:
                 logger.error("Timed out after %ds", timeout)
 

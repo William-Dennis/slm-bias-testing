@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import atexit
 import logging
+import os
 import platform
 import subprocess
 import time
@@ -54,7 +55,7 @@ class OllamaServer:
         atexit.register(self.stop)
 
     def _wait_for_server(self, timeout: int = 30, interval: int = 1) -> None:
-        url = "http://localhost:11434/api/tags"
+        url = f"http://{os.environ.get('OLLAMA_HOST', 'localhost:11434')}/api/tags"
         start_time = time.time()
         while time.time() - start_time < timeout:
             try:

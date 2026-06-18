@@ -19,11 +19,11 @@ PROVIDER = "ollama"
 # Default context window. Ollama 0.19+ uses MLX on Apple Silicon with intelligent
 # KV cache checkpoints — setting an explicit num_ctx lets Ollama optimise cache
 # allocation.  See: https://ollama.com/blog/mlx
-DEFAULT_NUM_CTX = int(os.environ.get("SLM_NUM_CTX", "2048"))
+DEFAULT_NUM_CTX = max(256, min(131072, int(os.environ.get("SLM_NUM_CTX", "2048"))))
 
 # How long to keep the model loaded after last API call (seconds).
 # Longer values reduce model reload overhead across sequential benchmark items.
-DEFAULT_KEEP_ALIVE = float(os.environ.get("SLM_KEEP_ALIVE", "5"))
+DEFAULT_KEEP_ALIVE = max(0.0, min(300.0, float(os.environ.get("SLM_KEEP_ALIVE", "5"))))
 
 
 class OllamaClient:

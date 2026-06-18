@@ -132,7 +132,7 @@ def process_cv_run(
 
     match = SCORE_PATTERN.search(output)
     if not match:
-        logger.warning("Score parse failed for key %s, run %d: %s", key, run, output[:100])
+        logger.warning("Score parse failed for key %s, run %d: %s", key, run, output[:200])
         return None
 
     score = int(match.group(1))
@@ -176,7 +176,7 @@ def _process_cv_run_threaded(
 
     match = SCORE_PATTERN.search(output)
     if not match:
-        logger.warning("Score parse failed for key %s, run %d: %s", key, run, output[:100])
+        logger.warning("Score parse failed for key %s, run %d: %s", key, run, output[:200])
         return None
 
     score = int(match.group(1))
