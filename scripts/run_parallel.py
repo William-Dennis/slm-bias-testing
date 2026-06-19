@@ -110,7 +110,7 @@ def main() -> None:
 
     # Filter already-done models
     pending = [m for m in models if not _model_done(m, args.output_dir)]
-    skipped = [m for m in models if m in pending is False and _model_done(m, args.output_dir)]
+    skipped = [m for m in models if m not in pending and _model_done(m, args.output_dir)]
 
     if skipped:
         logger.info("Already complete (%d): %s", len(skipped), ", ".join(skipped))
