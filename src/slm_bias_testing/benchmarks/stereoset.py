@@ -27,7 +27,8 @@ class StereoSetBenchmark(BaseBenchmark):
         self._data = list(dataset)
         return self._data
 
-    def _score_sentence(self, model: Any, context: str, continuation: str) -> int:
+    def _score_sentence(self, model: Any, context: str, continuation: str) -> tuple[int, bool]:
+        """Return (score, was_default). The bool indicates if fallback score was used."""
         prompt = (
             f"Context: {context}\n"
             f"Continuation: {continuation}\n"
@@ -39,11 +40,11 @@ class StereoSetBenchmark(BaseBenchmark):
             match = re.search(r"\b(\d+)\b", output)
             if match:
                 score = int(match.group(1))
-                return max(0, min(100, score))
+                return max(0, min(100, score)), False
         except Exception:
             logger.exception("Failed to score continuation")
         logger.warning("Using default score 50 for: %s / %s", context[:50], continuation[:50])
-        return 50
+        return 50, True
 
     def evaluate(
         self, model: Any, max_samples: int | None = None, output_dir: str | None = None
@@ -60,6 +61,7 @@ class StereoSetBenchmark(BaseBenchmark):
                 checkpoint[key] = call["score"]
 
         results = []
+        default_count = 0
         for idx, item in enumerate(tqdm(data, desc="StereoSet")):
             context = item["context"]
             sentences = item["sentences"]
@@ -91,7 +93,8 @@ class StereoSetBenchmark(BaseBenchmark):
             if stereo_key in checkpoint:
                 stereo_score = checkpoint[stereo_key]
             else:
-                stereo_score = self._score_sentence(model, context, stereotype_text)
+                stereo_score, was_default = self._score_sentence(model, context, stereotype_text)
+                default_count += was_default
                 if output_dir:
                     self._save_call(
                         output_dir,
@@ -105,7 +108,8 @@ class StereoSetBenchmark(BaseBenchmark):
             if anti_key in checkpoint:
                 anti_score = checkpoint[anti_key]
             else:
-                anti_score = self._score_sentence(model, context, anti_stereotype_text)
+                anti_score, was_default = self._score_sentence(model, context, anti_stereotype_text)
+                default_count += was_default
                 if output_dir:
                     self._save_call(
                         output_dir,
@@ -157,5 +161,6 @@ class StereoSetBenchmark(BaseBenchmark):
             "overall_stereotype_score": round(overall_score, 2),
             "per_category": per_category,
             "n_examples": total,
+            "default_score_count": default_count,
             "results": results,
         }

@@ -55,6 +55,9 @@ plt.rcParams.update(
 
 def find_results(base_dir: str = "results") -> list[dict]:
     """Scan results directory and load all result summaries."""
+    if not os.path.isdir(base_dir):
+        logger.warning("Results directory not found: %s", base_dir)
+        return []
     records = []
     for root, _dirs, files in os.walk(base_dir):
         for f in files:
@@ -282,12 +285,12 @@ def main() -> pd.DataFrame:
         print(f"No results found in {args.results_dir}/")
         print("Run benchmarks first, e.g.:")
         print("  uv run python scripts/run_experiments.py --benchmarks all")
-        sys.exit(0)
+        sys.exit(1)
 
     df = merge_registry(records)
     if df.empty:
         print("Results found but none match registered models.")
-        sys.exit(0)
+        sys.exit(1)
 
     print_summary(df)
 

@@ -22,11 +22,14 @@ class BaseBenchmark(ABC):
         Called after every model.predict() so that a process kill
         loses at most the in-flight call, not hours of work.
         """
-        os.makedirs(output_dir, exist_ok=True)
-        path = self._checkpoint_path(output_dir)
-        with open(path, "a") as f:
-            f.write(json.dumps(call_data) + "\n")
-            f.flush()
+        try:
+            os.makedirs(output_dir, exist_ok=True)
+            path = self._checkpoint_path(output_dir)
+            with open(path, "a") as f:
+                f.write(json.dumps(call_data) + "\n")
+                f.flush()
+        except OSError as e:
+            logger.error("Failed to write checkpoint: %s", e)
 
     def _load_checkpoint(self, output_dir: str) -> list[dict[str, Any]]:
         """Load all checkpointed call results (JSONL, one dict per line)."""
@@ -42,8 +45,7 @@ class BaseBenchmark(ABC):
                 try:
                     results.append(json.loads(line))
                 except json.JSONDecodeError:
-                    logger.warning("Truncated checkpoint line — stopping at last valid entry")
-                    break
+                    logger.warning("Skipping corrupt checkpoint line")
         return results
 
     @abstractmethod
@@ -55,19 +57,25 @@ class BaseBenchmark(ABC):
     ) -> dict[str, Any]: ...
 
     def save_results(self, results: dict[str, Any], output_dir: str) -> None:
-        os.makedirs(output_dir, exist_ok=True)
-        results_file = os.path.join(output_dir, f"{self.name}.json")
-        tmp_file = results_file + ".tmp"
-        with open(tmp_file, "w") as f:
-            json.dump(results, f, indent=2)
-        os.replace(tmp_file, results_file)
-        ckpt = self._checkpoint_path(output_dir)
-        if os.path.exists(ckpt):
-            os.remove(ckpt)
+        try:
+            os.makedirs(output_dir, exist_ok=True)
+            results_file = os.path.join(output_dir, f"{self.name}.json")
+            tmp_file = results_file + ".tmp"
+            with open(tmp_file, "w") as f:
+                json.dump(results, f, indent=2)
+            os.replace(tmp_file, results_file)
+            ckpt = self._checkpoint_path(output_dir)
+            if os.path.exists(ckpt):
+                os.remove(ckpt)
+        except OSError as e:
+            logger.warning("Failed to save results to %s: %s", output_dir, e)
 
     def load_results(self, output_dir: str) -> dict[str, Any] | None:
         results_file = os.path.join(output_dir, f"{self.name}.json")
         if os.path.exists(results_file):
-            with open(results_file) as f:
-                return json.load(f)  # type: ignore[no-any-return]
+            try:
+                with open(results_file) as f:
+                    return json.load(f)  # type: ignore[no-any-return]
+            except (json.JSONDecodeError, OSError) as e:
+                logger.warning("Failed to load results from %s: %s", results_file, e)
         return None

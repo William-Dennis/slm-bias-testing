@@ -10,6 +10,7 @@ import re
 import textwrap
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
 from typing import Any
 
 import matplotlib.pyplot as plt
@@ -73,7 +74,9 @@ def load_existing_records(filepath: str = "records.csv") -> pd.DataFrame:
 
 
 def save_records(df: pd.DataFrame, filepath: str = "records.csv") -> None:
-    df.to_csv(filepath)
+    tmp = filepath + ".tmp"
+    df.to_csv(tmp)
+    os.replace(tmp, filepath)
 
 
 def _checkpoint_path(output_dir: str) -> str:
@@ -129,6 +132,7 @@ def process_cv_run(
 
     match = SCORE_PATTERN.search(output)
     if not match:
+        logger.warning("Score parse failed for key %s, run %d: %s", key, run, output[:200])
         return None
 
     score = int(match.group(1))
@@ -172,6 +176,7 @@ def _process_cv_run_threaded(
 
     match = SCORE_PATTERN.search(output)
     if not match:
+        logger.warning("Score parse failed for key %s, run %d: %s", key, run, output[:200])
         return None
 
     score = int(match.group(1))
@@ -206,7 +211,7 @@ def run_benchmark(
         # sys.path so the import works regardless of the caller's cwd.
         import sys
 
-        repo_root = str(__import__("pathlib").Path(__file__).resolve().parent.parent.parent)
+        repo_root = str(Path(__file__).resolve().parent.parent.parent)
         if repo_root not in sys.path:
             sys.path.insert(0, repo_root)
 
@@ -252,15 +257,6 @@ def run_benchmark(
     records: list[dict[str, Any]] = []
     seen_lock = threading.Lock()
 
-    # Build work items: (cv, run) pairs, skipping already-seen items
-    work_items: list[tuple[dict[str, Any], int]] = []
-    for cv in cv_data:
-        for run in range(n_runs):
-            prompt = base_prompt + f"\nCandidate CV\n{cv['cv']}"
-            key = sha256_hash(prompt)
-            if (key, run) not in seen_set:
-                work_items.append((cv, run))
-
     if concurrency <= 1:
         # Sequential path — original behaviour, no thread overhead
         for cv in tqdm(cv_data, desc="CVs"):
@@ -271,6 +267,15 @@ def run_benchmark(
                     _save_checkpoint(output_dir, record)
                     seen_set.add((record["key"], record["run"]))
     else:
+        # Build work items: (cv, run) pairs, skipping already-seen items
+        work_items: list[tuple[dict[str, Any], int]] = []
+        for cv in cv_data:
+            for run in range(n_runs):
+                prompt = base_prompt + f"\nCandidate CV\n{cv['cv']}"
+                key = sha256_hash(prompt)
+                if (key, run) not in seen_set:
+                    work_items.append((cv, run))
+
         logger.info("Running %d items with concurrency=%d", len(work_items), concurrency)
         with ThreadPoolExecutor(max_workers=concurrency) as executor:
             futures = {
