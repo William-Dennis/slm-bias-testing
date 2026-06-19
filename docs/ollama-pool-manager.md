@@ -8,7 +8,7 @@ parallelism.
 
 ## Architecture
 
-```
+```text
 Python (benchmark logic)          Node.js (ollama_pool.mjs)
 ─────────────────────             ─────────────────────────
 1. Generate jobs                  1. Read jobs from stdin
@@ -30,7 +30,7 @@ Responsibilities:
 - Graceful shutdown on SIGTERM/SIGINT
 
 CLI:
-```
+```bash
 node scripts/ollama_pool.mjs [options]
 
 Options:
@@ -134,7 +134,7 @@ Response (relevant fields):
 
 ## Worker Pool Logic
 
-```
+```text
 max_pool = N  (e.g. 6)
 active_workers = 0
 
@@ -179,7 +179,7 @@ Ollama response latency as a proxy — high latency = GPU saturated.
 
 ### Headroom Rules
 
-```
+```text
 can_dispatch = (
   free_ram > RAM_FLOOR           # e.g. 2GB always free
   AND cpu_load < cores * 0.9     # don't saturate CPU
@@ -196,12 +196,12 @@ free up. Workers already in flight continue to completion.
 |-------------------------------|---------------------------------|
 | free_ram > 4GB, low latency   | Allow up to max_pool workers    |
 | free_ram 2-4GB, or latency up | Cap at max_pool / 2 workers     |
-| free_ram < 2GB, or latency >20s | Pause dispatch, drain to 1   |
+| free_ram < 2GB, or latency >20s | Pause dispatch, drain to min_pool   |
 | Ollama connection refused     | Pause all, retry connection     |
 
 ### CLI Flags
 
-```
+```bash
 --adaptive          Enable adaptive concurrency (default: true)
 --max-pool <n>      Upper bound on concurrent workers (default: 6)
 --min-pool <n>      Lower bound — always allow at least this many (default: 1)
@@ -213,7 +213,7 @@ free up. Workers already in flight continue to completion.
 
 Every 30 seconds, write a status line to stderr:
 
-```
+```text
 [pool] workers: 4/6  ram: 18.2/24GB  cpu: 3.2/10  latency: 2.1s  dispatched: 1247  errors: 3
 ```
 

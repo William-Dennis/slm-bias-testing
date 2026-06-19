@@ -135,6 +135,7 @@ def main() -> None:
     failed_models: list[str] = []
     model_queue = list(pending)
     retry_queue: list[str] = []  # models to retry once
+    retried: set[str] = set()  # models that have already been retried
 
     def _spawn(model: str) -> subprocess.Popen:
         """Launch run_single_model.py for a model."""
@@ -192,7 +193,7 @@ def main() -> None:
                 print(_progress_line(i, total, m, "skip", 4, ""))
 
     # Main loop
-    while pending or running:
+    while model_queue or running:
         # Fill slots up to concurrency
         while len(running) < args.concurrency and model_queue:
             model = model_queue.pop(0)
@@ -221,7 +222,8 @@ def main() -> None:
                 logger.info("  %s: completed", model)
             else:
                 # Check if it's a retry candidate
-                if model not in retry_queue:
+                if model not in retried:
+                    retried.add(model)
                     retry_queue.append(model)
                     logger.warning("  %s: failed (will retry once)", model)
                     logger.warning("  stderr: %s", stderr[-500:] if stderr else "")

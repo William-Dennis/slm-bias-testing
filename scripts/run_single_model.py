@@ -79,9 +79,13 @@ def _pull_model(ollama_tag: str) -> bool:
             text=True,
             timeout=10,
         )
-        if ollama_tag in result.stdout:
-            logger.info("Model %s already present", ollama_tag)
-            return True
+        # ollama list output: NAME  ID  SIZE  MODIFIED
+        # Check first column for exact tag match
+        for line in result.stdout.strip().split("\n"):
+            parts = line.split()
+            if parts and parts[0] == ollama_tag:
+                logger.info("Model %s already present", ollama_tag)
+                return True
     except (subprocess.TimeoutExpired, OSError):
         pass
 
