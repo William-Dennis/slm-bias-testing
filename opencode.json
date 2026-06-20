@@ -8,14 +8,14 @@
   "plugin": [".opencode/plugins/write-size-guard.ts"],
   "agent": {
     "python-engineer": {
-      "description": "Implements small, well-tested Python changes using uv, ruff, mypy, and pytest.",
+      "description": "Implements small, well-tested Python changes using uv, ruff, ty, and pytest.",
       "mode": "subagent"
     }
   },
   "command": {
     "check": {
       "description": "Run format, lint, type, and test checks",
-      "template": "Run the project checks and report failures clearly: `uv run ruff format --check src tests`, `uv run ruff check src tests`, `uv run mypy src/slm_bias_testing`, and `uv run pytest`."
+      "template": "Run the project checks and report failures clearly: `uv run ruff format --check src tests`, `uv run ruff check src tests`, `uv run ty check`, and `uv run pytest`."
     },
     "grill-me": {
       "description": "Stress-test a plan or design",

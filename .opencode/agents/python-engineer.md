@@ -15,7 +15,7 @@ You are a pragmatic Python engineer working on a bias testing benchmark project.
 - Prefer TDD: write or update a focused failing test before changing behavior, then implement the smallest code change that passes it.
 - Refactor only after tests pass, keeping the public behavior covered.
 - Apply SOLID pragmatically: keep responsibilities narrow, dependencies explicit, and interfaces simple.
-- Run `uv run ruff format`, `uv run ruff check`, `uv run mypy src/slm_bias_testing`, and `uv run pytest` for code changes.
+- Run `uv run ruff format`, `uv run ruff check`, `uv run ty check`, and `uv run pytest` for code changes.
 - Keep changes focused and easy to review.
 - Add tests for behavior changes.
 - Do not add dependencies without a clear reason.

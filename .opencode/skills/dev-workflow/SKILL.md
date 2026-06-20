@@ -77,7 +77,7 @@ Include in the prompt:
 - The full worktree path (`$WORKTREE_PATH`)
 - The specific files to change (use absolute paths under `$WORKTREE_PATH`)
 - The behavior to implement and what tests to write
-- To run `uv run ruff format --check src tests`, `uv run ruff check src tests`, `uv run mypy src/slm_bias_testing`, and `uv run pytest` on completion
+- To run `uv run ruff format --check .`, `uv run ruff check --fix`, `uv run ty check --exclude tests/`, and `uv run pytest` on completion
 - To delegate back to you when done with a summary
 
 #### Config / docs / Markdown → implement directly
@@ -91,10 +91,10 @@ Include in the prompt:
 Run inside the worktree (`workdir: $WORKTREE_PATH`):
 
 ```bash
-uv run ruff format --check src tests
-uv run ruff check src tests
-uv run mypy src/slm_bias_testing
-uv run pytest -m "not integration and not slow"
+uv run ruff format --check .
+uv run ruff check --fix
+uv run ty check --exclude tests/
+uv run pytest
 ```
 
 If any check fails, fix it and re-verify. Do not proceed until all pass.
@@ -145,10 +145,10 @@ Report to the user:
 ## Standard Checks
 
 ```bash
-uv run ruff format --check src tests
-uv run ruff check src tests
-uv run mypy src/slm_bias_testing
-uv run pytest -m "not integration and not slow"
+uv run ruff format --check .
+uv run ruff check --fix
+uv run ty check --exclude tests/
+uv run pytest
 ```
 
 ## Rules
