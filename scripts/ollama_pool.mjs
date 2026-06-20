@@ -35,7 +35,7 @@ const LATENCY_CEILING_MS = parseInt(flag("latency-ceiling", "15000"), 10);
 const TIMEOUT_MS = parseInt(flag("timeout", "30000"), 10);
 const RETRIES = Math.max(0, parseInt(flag("retries", "2"), 10));
 const OLLAMA_HOST = flag("ollama-host", "http://localhost:11434");
-const NO_RESTART = args.includes("--no-restart");
+const SHOULD_RESTART = args.includes("--restart");
 
 // ── State ─────────────────────────────────────────────────────────────
 let activeWorkers = 0;
@@ -58,12 +58,12 @@ function writeResult(id, response, error, latencyMs) {
 
 // ── Ollama lifecycle ──────────────────────────────────────────────────
 async function setupOllama() {
-  if (NO_RESTART) {
+  if (!SHOULD_RESTART) {
     if (await checkOllama()) {
-      log("Ollama already running (--no-restart)");
+      log("Ollama already running");
       return true;
     }
-    log("ERROR: Ollama not running and --no-restart specified");
+    log("ERROR: Ollama not running");
     return false;
   }
 
@@ -235,7 +235,10 @@ async function main() {
   // Setup Ollama while stdin is already being read and jobs queued
   if (!(await setupOllama())) process.exit(1);
 
-  const statusInterval = setInterval(logStatus, 30000);
+  const     statusInterval = setInterval(logStatus, 30000);
+
+  // Signal readiness via structured handshake on stdout
+  process.stdout.write(JSON.stringify({ protocol: 1, ready: true }) + "\n");
 
   // Process jobs that arrived during Ollama setup
   while (!poolClosing) {
@@ -244,7 +247,7 @@ async function main() {
     } else if (stdinClosed && pendingJobs === 0) {
       break;
     } else {
-      await sleep(10);
+      await sleep(50);
     }
   }
 

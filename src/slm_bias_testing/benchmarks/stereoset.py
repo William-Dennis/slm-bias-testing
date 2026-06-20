@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import datasets
 
 from slm_bias_testing.benchmarks import BaseBenchmark
+
+if TYPE_CHECKING:
+    from slm_bias_testing.model_clients import PoolClientProtocol
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +34,7 @@ class StereoSetBenchmark(BaseBenchmark):
         model: Any = None,
         max_samples: int | None = None,
         output_dir: str | None = None,
-        pool_client: Any | None = None,
+        pool_client: PoolClientProtocol | None = None,
     ) -> dict[str, Any]:
         data = self.load_dataset()
         if max_samples is not None:
@@ -83,7 +86,7 @@ class StereoSetBenchmark(BaseBenchmark):
         self,
         data: list[dict[str, Any]],
         checkpoint: dict[tuple[int, str], int],
-        pool_client: Any,
+        pool_client: PoolClientProtocol,
         output_dir: str | None,
     ) -> dict[str, Any]:
         # Collect all prompts upfront
@@ -105,10 +108,8 @@ class StereoSetBenchmark(BaseBenchmark):
         # Process in batches
         scores: dict[tuple[int, str], int] = dict(checkpoint)
         default_count = 0
-        batch_size = pool_client.batch_size
 
-        for batch_start in range(0, len(pending), batch_size):
-            batch = pending[batch_start : batch_start + batch_size]
+        def build_jobs(batch):
             jobs = []
             for idx, call_type, context, continuation in batch:
                 prompt = self._make_stereo_prompt(context, continuation)
@@ -119,9 +120,10 @@ class StereoSetBenchmark(BaseBenchmark):
                         "temperature": 0.0,
                     }
                 )
+            return jobs
 
-            results = pool_client.predict_batch(jobs)
-
+        def process_results(batch, jobs, results):
+            nonlocal default_count
             for (idx, call_type, _context, _continuation), job in zip(batch, jobs, strict=True):
                 result = results.get(job["id"])
                 if result and not result["error"]:
@@ -140,6 +142,8 @@ class StereoSetBenchmark(BaseBenchmark):
                             "score": score,
                         },
                     )
+
+        self._process_batch(pending, pool_client, build_jobs, process_results)
 
         # Build results
         results_list = []

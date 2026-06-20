@@ -10,12 +10,25 @@ import subprocess
 import threading
 from collections import deque
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
     from types import TracebackType
 
 logger = logging.getLogger(__name__)
+
+
+class PoolClientProtocol(Protocol):
+    """Type protocol for pool clients used by benchmarks."""
+
+    model_name: str
+    pool_size: int
+    batch_size: int
+    batch_timeout: int
+
+    def predict_batch(self, jobs: list[dict]) -> dict[str, dict]: ...
+
+    def close(self) -> None: ...
 
 
 class BatchTimeoutError(Exception):
@@ -78,14 +91,11 @@ class OllamaPoolClient:
         )
         self._read_lock = threading.Lock()
         self._stderr_lines: deque[str] = deque(maxlen=100)
-        self._ready_event = threading.Event()
         self._stderr_thread = threading.Thread(target=self._drain_stderr, daemon=True)
         self._stderr_thread.start()
 
-        # Wait for pool to signal readiness (drain thread sets the event)
-        if not self._ready_event.wait(timeout=30):
-            self.close()
-            raise RuntimeError("Ollama pool failed to start within 30s")
+        # Read structured handshake from pool stdout
+        self._read_handshake()
 
     def predict_batch(self, jobs: list[dict]) -> dict[str, dict]:
         """Send batch of jobs to pool, read results as they stream back.
@@ -123,6 +133,12 @@ class OllamaPoolClient:
         # Read exactly len(jobs) results from stdout with a batch-level timeout
         results: dict[str, dict] = {}
         expected_ids = {job["id"] for job in full_jobs}
+        if self.batch_timeout > 0 and threading.current_thread() is not threading.main_thread():
+            raise RuntimeError(
+                "predict_batch with batch_timeout>0 requires the main thread "
+                "(signal.SIGALRM is thread-hostile). "
+                "Call from main thread or set batch_timeout=0 to disable."
+            )
         old_alarm = signal.alarm(0)  # Save and disarm any existing alarm
         signal.signal(signal.SIGALRM, self._batch_timeout_handler)
         signal.alarm(self.batch_timeout)
@@ -171,20 +187,31 @@ class OllamaPoolClient:
             raise RuntimeError("Pool subprocess stdout is closed")
         return self._proc.stdout.readline() or None
 
-    def _drain_stderr(self) -> None:
-        """Background thread: read pool stderr to prevent buffer deadlock.
+    def _read_handshake(self) -> None:
+        """Read protocol handshake from pool stdout (first line)."""
+        if self._proc.stdout is None:
+            self.close()
+            raise RuntimeError("Pool subprocess stdout is closed")
+        line = self._proc.stdout.readline()
+        if not line:
+            self.close()
+            raise RuntimeError("Pool closed before sending handshake")
+        try:
+            msg = json.loads(line)
+        except json.JSONDecodeError:
+            self.close()
+            raise RuntimeError(f"Pool sent invalid handshake: {line!r}") from None
+        if not isinstance(msg, dict) or msg.get("protocol") != 1 or not msg.get("ready"):
+            self.close()
+            raise RuntimeError(f"Pool sent unexpected handshake: {msg}")
 
-        Also detects the Ollama ready signal and sets ``_ready_event``.
-        """
+    def _drain_stderr(self) -> None:
+        """Background thread: read pool stderr to prevent buffer deadlock."""
         if self._proc.stderr is None:
             return
         for line in self._proc.stderr:
             stripped = line.rstrip("\n")
             self._stderr_lines.append(stripped)
-            if not self._ready_event.is_set() and (
-                "Ollama started" in stripped or "Ollama already running" in stripped
-            ):
-                self._ready_event.set()
 
     def close(self) -> None:
         """Close stdin and wait for pool to drain and exit."""

@@ -69,14 +69,14 @@ def run_model_benchmarks(
     bench_list = get_benchmarks(benchmark)
 
     # Create pool client once per model — it manages Ollama lifecycle
-    pool_client = OllamaPoolClient(
-        model_name=ollama_tag,
-        pool_size=pool_size,
-        batch_size=batch_size,
-        adaptive=adaptive,
-    )
-
+    pool_client: OllamaPoolClient | None = None
     try:
+        pool_client = OllamaPoolClient(
+            model_name=ollama_tag,
+            pool_size=pool_size,
+            batch_size=batch_size,
+            adaptive=adaptive,
+        )
         for bench in bench_list:
             results_dir = os.path.join(base_output_dir, model_name, bench)
             results_file = os.path.join(results_dir, "results.json")
@@ -127,7 +127,8 @@ def run_model_benchmarks(
             _write_summary(results_file, summary)
             logger.info("Saved results for %s/%s", model_name, bench)
     finally:
-        pool_client.close()
+        if pool_client is not None:
+            pool_client.close()
 
 
 def _get_benchmark(bench: str) -> BaseBenchmark | None:

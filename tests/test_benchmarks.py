@@ -17,7 +17,7 @@ class TestBaseBenchmark:
             def load_dataset(self):
                 return []
 
-            def evaluate(self, model, pool_client=None):
+            def evaluate(self, model=None, max_samples=None, output_dir=None, pool_client=None):
                 return {"result": 42}
 
         bm = ConcreteBench()
@@ -31,7 +31,7 @@ class TestBaseBenchmark:
             def load_dataset(self):
                 return []
 
-            def evaluate(self, model, pool_client=None):
+            def evaluate(self, model=None, max_samples=None, output_dir=None, pool_client=None):
                 return {"result": 42}
 
         bm = ConcreteBench()
@@ -47,7 +47,7 @@ class TestBaseBenchmark:
             def load_dataset(self):
                 return []
 
-            def evaluate(self, model, pool_client=None):
+            def evaluate(self, model=None, max_samples=None, output_dir=None, pool_client=None):
                 return {"result": 42}
 
         bm = ConcreteBench()
@@ -61,6 +61,9 @@ class MockPoolClient:
     def __init__(self, responses: dict[str, str] | None = None, batch_size: int = 40):
         self.responses = responses or {}
         self.batch_size = batch_size
+        self.model_name = "test-model"
+        self.pool_size = batch_size
+        self.batch_timeout = 300
 
     def predict_batch(self, jobs: list[dict]) -> dict[str, dict]:
         results = {}
@@ -73,6 +76,9 @@ class MockPoolClient:
                     break
             results[job["id"]] = {"response": response, "error": None}
         return results
+
+    def close(self) -> None:
+        pass
 
 
 def _make_stereoset_item(id, bias_type, target, context, stereotype, anti_stereotype):

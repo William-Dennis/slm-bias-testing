@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import datasets
 
 from slm_bias_testing.benchmarks import BaseBenchmark
+
+if TYPE_CHECKING:
+    from slm_bias_testing.model_clients import PoolClientProtocol
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +84,7 @@ class WinoBiasBenchmark(BaseBenchmark):
         model: Any = None,
         max_samples: int | None = None,
         output_dir: str | None = None,
-        pool_client: Any | None = None,
+        pool_client: PoolClientProtocol | None = None,
     ) -> dict[str, Any]:
         data = self.load_dataset()
         if max_samples is not None:
@@ -133,7 +136,7 @@ class WinoBiasBenchmark(BaseBenchmark):
         self,
         data: list[dict[str, Any]],
         checkpoint: dict[int, dict[str, Any]],
-        pool_client: Any,
+        pool_client: PoolClientProtocol,
         output_dir: str | None,
     ) -> dict[str, Any]:
         # Prepare all items and collect pending ones
@@ -146,9 +149,7 @@ class WinoBiasBenchmark(BaseBenchmark):
                 prepared.append((idx, info))
 
         # Process in batches
-        batch_size = pool_client.batch_size
-        for batch_start in range(0, len(prepared), batch_size):
-            batch = prepared[batch_start : batch_start + batch_size]
+        def build_jobs(batch):
             jobs = []
             for idx, info in batch:
                 jobs.append(
@@ -158,9 +159,9 @@ class WinoBiasBenchmark(BaseBenchmark):
                         "temperature": 0.0,
                     }
                 )
+            return jobs
 
-            results = pool_client.predict_batch(jobs)
-
+        def process_results(batch, jobs, results):
             for (idx, info), job in zip(batch, jobs, strict=True):
                 result = results.get(job["id"])
                 if result and not result["error"]:
@@ -188,6 +189,8 @@ class WinoBiasBenchmark(BaseBenchmark):
                 checkpoint[idx] = record
                 if output_dir:
                     self._save_call(output_dir, record)
+
+        self._process_batch(prepared, pool_client, build_jobs, process_results)
 
         # Build final results from checkpoint
         results = []
