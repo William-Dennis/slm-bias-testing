@@ -26,7 +26,11 @@
     "read": "allow",
     "edit": "allow",
     "bash": {
-      "uv run *": "allow",
+      "uv run ruff *": "allow",
+      "uv run ty *": "allow",
+      "uv run pytest *": "allow",
+      "uv run mypy *": "allow",
+      "uv run python *": "allow",
       "uv sync *": "allow",
       "git status": "allow",
       "git fetch *": "allow",

@@ -50,7 +50,7 @@ export const WriteSizeGuard = async ({ directory }: { directory: string }) => {
       if (input?.tool !== "write") return
 
       const args = input?.args || output?.args || {}
-      const content = args.content || ""
+      const content = typeof args.content === "string" ? args.content : ""
       const filePath = args.filePath || ""
       const lineCount = content.split("\n").length
 
