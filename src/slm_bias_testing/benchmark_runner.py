@@ -90,7 +90,6 @@ def run_model_benchmarks(
                 from slm_bias_testing.cv_screening import run_cv_screening
 
                 df = run_cv_screening(
-                    model_name=ollama_tag,
                     output_dir=results_dir,
                     max_samples=max_samples,
                     pool_client=pool_client,
@@ -113,9 +112,10 @@ def run_model_benchmarks(
                 if bm is None:
                     continue
                 results = bm.evaluate(
-                    pool_client,
+                    model=None,
                     max_samples=max_samples,
                     output_dir=results_dir,
+                    pool_client=pool_client,
                 )
                 bm.save_results(results, results_dir)
                 summary = _build_benchmark_summary(

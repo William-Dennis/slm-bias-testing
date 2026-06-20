@@ -170,7 +170,8 @@ class WinoBiasBenchmark(BaseBenchmark):
 
                 answer_lower = answer.lower()
                 words_in_answer = re.findall(r"[a-zA-Z-]+", answer_lower)
-                correct = info["correct_antecedent"].lower() in words_in_answer
+                antecedent_words = info["correct_antecedent"].lower().split()
+                correct = all(w in words_in_answer for w in antecedent_words)
 
                 record = {
                     "item_idx": idx,

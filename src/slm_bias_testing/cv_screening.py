@@ -115,7 +115,6 @@ def _load_cv_examples() -> tuple[list[dict[str, Any]], str]:
 
 
 def run_cv_screening(
-    model_name: str,
     output_dir: str = "results",
     cv_data: list[dict[str, Any]] | None = None,
     job_desc: str | None = None,
@@ -126,7 +125,6 @@ def run_cv_screening(
     """Run CV screening benchmark for a single model.
 
     Args:
-        model_name: Ollama model tag or HuggingFace model name.
         output_dir: Directory for results and plots.
         cv_data: Optional CV data list (loads from examples if None).
         job_desc: Optional job description string (loads from examples if None).
@@ -247,7 +245,7 @@ def _run_pool_batched(
                 continue
             match = SCORE_PATTERN.search(result["response"] or "")
             if match:
-                score = int(match.group(1))
+                score = min(int(match.group(1)), 100)
                 key = sha256_hash(str(job["prompt"]))
                 record = dict(cv["metadata"])
                 record.update({"run": run, "key": key, "score": score})

@@ -110,6 +110,7 @@ class OllamaPoolClient:
 
         # Read exactly len(jobs) results from stdout
         results: dict[str, dict] = {}
+        expected_ids = {job["id"] for job in full_jobs}
         with self._read_lock:
             for _ in range(len(full_jobs)):
                 line = self._read_line()
@@ -125,6 +126,12 @@ class OllamaPoolClient:
                     }
                 except (json.JSONDecodeError, KeyError) as e:
                     logger.error("Failed to parse pool result: %s", e)
+
+        missing = expected_ids - results.keys()
+        if missing:
+            raise RuntimeError(
+                f"Pool returned incomplete results — missing {len(missing)} job(s): {str(missing)}"
+            )
 
         return results
 
@@ -171,9 +178,13 @@ class OllamaPoolClient:
         for line in self._stderr_lines:
             logger.debug("pool: %s", line)
 
-    def __enter__(self):
+    def __enter__(self) -> OllamaPoolClient:
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: type[BaseException] | None,
+    ) -> None:
         self.close()
-        return False

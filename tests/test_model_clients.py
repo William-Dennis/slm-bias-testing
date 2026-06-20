@@ -67,7 +67,7 @@ class TestOllamaPoolClient:
         mock_popen.return_value = _mock_popen_with_ready()
         with OllamaPoolClient(model_name="test-model") as c:
             assert c is not None
-        c._proc.wait.assert_called()
+        assert hasattr(c._proc.wait, "called") and c._proc.wait.called
 
     @patch("slm_bias_testing.model_clients.subprocess.Popen")
     def test_no_adaptive_flag(self, mock_popen):

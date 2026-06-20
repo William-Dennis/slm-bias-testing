@@ -11,6 +11,7 @@ Usage:
 
 from __future__ import annotations
 
+import contextlib
 import json
 import subprocess
 import sys
@@ -91,7 +92,8 @@ def _pool_batch(jobs: list[dict], pool_size: int, no_restart: bool = False) -> l
     for job in jobs:
         stdin.write(json.dumps(job) + "\n")
     stdin.flush()
-    stdin.close()
+    with contextlib.suppress(OSError):
+        stdin.close()
 
     results = []
     for _ in range(len(jobs)):
@@ -100,7 +102,15 @@ def _pool_batch(jobs: list[dict], pool_size: int, no_restart: bool = False) -> l
             break
         results.append(json.loads(line))
 
-    proc.wait(timeout=30)
+    try:
+        proc.wait(timeout=30)
+    except subprocess.TimeoutExpired:
+        proc.terminate()
+        try:
+            proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+
     t.join(timeout=5)
     return results
 
