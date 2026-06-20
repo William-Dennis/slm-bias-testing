@@ -29,6 +29,7 @@ function flag(name, fallback) {
 }
 
 const MAX_POOL = Math.max(1, parseInt(flag("max-pool", "6"), 10));
+const MIN_POOL = Math.max(1, Math.min(MAX_POOL, parseInt(flag("min-pool", "1"), 10)));
 const ADAPTIVE = !args.includes("--no-adaptive");
 const RAM_FLOOR_GB = parseFloat(flag("ram-floor", "2"));
 const LATENCY_CEILING_MS = parseInt(flag("latency-ceiling", "15000"), 10);
@@ -99,6 +100,7 @@ async function checkOllama() {
 function httpGet(url) {
   return new Promise((resolve, reject) => {
     const req = http.get(url, { timeout: 5000 }, (res) => {
+      res.setEncoding("utf8");
       let data = "";
       res.on("data", (chunk) => (data += chunk));
       res.on("end", () => {
@@ -122,6 +124,7 @@ function httpPost(url, body) {
       timeout: TIMEOUT_MS,
     };
     const req = http.request(options, (res) => {
+      res.setEncoding("utf8");
       let responseData = "";
       res.on("data", (chunk) => (responseData += chunk));
       res.on("end", () => {
@@ -142,7 +145,9 @@ function httpPost(url, body) {
 
 // ── Adaptive concurrency ──────────────────────────────────────────────
 function canDispatch() {
-  if (!ADAPTIVE) return activeWorkers < MAX_POOL;
+  if (activeWorkers >= MAX_POOL) return false;
+  if (activeWorkers < MIN_POOL) return true;
+  if (!ADAPTIVE) return true;
   const freeRamGB = os.freemem() / (1024 ** 3);
   const cpuLoad = os.loadavg()[0];
   if (freeRamGB < RAM_FLOOR_GB) return false;
@@ -151,7 +156,7 @@ function canDispatch() {
     const avg = latencyWindow.reduce((a, b) => a + b, 0) / latencyWindow.length;
     if (avg > LATENCY_CEILING_MS) return false;
   }
-  return activeWorkers < MAX_POOL;
+  return true;
 }
 
 // ── Worker pool ───────────────────────────────────────────────────────
