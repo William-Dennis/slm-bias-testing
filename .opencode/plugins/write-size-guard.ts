@@ -4,14 +4,14 @@
  * Large generated writes can fail or corrupt files in some agent runtimes. Keep
  * this guard active by default; split large file creation into smaller edits.
  */
-import { appendFileSync, mkdirSync } from "fs"
+import { appendFile, mkdir } from "fs/promises"
 import { dirname, join, resolve } from "path"
 import { randomUUID } from "crypto"
 
 const WARN_LINES = 100
 const BLOCK_LINES = 150
 
-function logViolation(
+async function logViolation(
   directory: string,
   sessionId: string,
   filePath: string,
@@ -25,8 +25,8 @@ function logViolation(
       "metrics",
       "write-size-violations.jsonl",
     )
-    mkdirSync(dirname(out), { recursive: true })
-    appendFileSync(
+    await mkdir(dirname(out), { recursive: true })
+    await appendFile(
       out,
       JSON.stringify({
         ts: new Date().toISOString(),
@@ -55,7 +55,7 @@ export const WriteSizeGuard = async ({ directory }: { directory: string }) => {
       const lineCount = content.split("\n").length
 
       if (lineCount > BLOCK_LINES) {
-        logViolation(directory, sessionId, filePath, lineCount, true)
+        await logViolation(directory, sessionId, filePath, lineCount, true)
         throw new Error(
           `Write blocked: ${lineCount} lines exceeds the ${BLOCK_LINES}-line limit. ` +
             "Create a small placeholder file, then append content in smaller edits.",
@@ -63,7 +63,7 @@ export const WriteSizeGuard = async ({ directory }: { directory: string }) => {
       }
 
       if (lineCount > WARN_LINES) {
-        logViolation(directory, sessionId, filePath, lineCount, false)
+        await logViolation(directory, sessionId, filePath, lineCount, false)
         console.error(
           `[write-size-guard] Warning: ${filePath} write has ${lineCount} lines.`,
         )

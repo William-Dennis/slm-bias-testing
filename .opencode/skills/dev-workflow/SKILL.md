@@ -54,7 +54,8 @@ EXISTING=$(gh pr list --head "$BRANCH" --state open --json headRefName 2>/dev/nu
 **Resume existing work** (branch or PR exists):
 
 ```bash
-git worktree add -b "$BRANCH" "$WORKTREE_PATH" "origin/$BRANCH"
+git fetch origin "$BRANCH":"$BRANCH" 2>/dev/null || true
+git worktree add "$WORKTREE_PATH" "$BRANCH"
 ```
 
 **New work** (neither branch nor PR exists):

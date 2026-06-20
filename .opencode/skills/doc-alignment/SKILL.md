@@ -9,7 +9,7 @@ Use this skill to verify that docs match reality.
 
 ## Check Order
 
-1. Read the claimed behavior in docs/README/AGENTS.md.
+1. Read the claimed behavior in AGENTS.md.
 2. Read the actual code implementation.
 3. Check if tests cover the documented behavior.
 4. Report mismatches with file and line references.

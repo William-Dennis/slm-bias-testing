@@ -24,7 +24,7 @@ This repo enforces an **issue → branch → PR → review → merge** model.
    ```bash
    uv run ruff check src tests
    uv run ruff format --check src tests
-   uv run mypy src/slm_bias_testing
+   uv run ty check
    uv run pytest
    ```
 5. Push and open a PR targeting `main`. Link the issue with `Closes #N`.
@@ -47,7 +47,7 @@ This repo enforces an **issue → branch → PR → review → merge** model.
 
 - **Linting:** Ruff (E, W, F, I, UP, B, SIM, TCH, RUF)
 - **Formatting:** Ruff formatter (line length 100)
-- **Type checking:** Mypy with `disallow_untyped_defs`, `warn_return_any`
+- **Type checking:** Ty
 - **Testing:** Pytest. All new code must have tests.
 - **SOLID:** Single responsibility per module/class. No mutable global state.
 - **No mutable globals.** Use dependency injection (classes, not module-level state).

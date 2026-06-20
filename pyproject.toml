@@ -22,7 +22,7 @@ dependencies = [
 dev = [
     "pytest>=8.0.0",
     "ruff>=0.14.10",
-    "mypy>=1.15.0",
+    "ty>=0.0.51",
 ]
 
 [build-system]
@@ -53,15 +53,6 @@ ignore = [
 
 [tool.ruff.lint.isort]
 known-first-party = ["slm_bias_testing"]
-
-# ── Mypy ──────────────────────────────────────────────────────────────
-[tool.mypy]
-python_version = "3.11"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
-check_untyped_defs = true
-ignore_missing_imports = true
 
 # ── Pytest ────────────────────────────────────────────────────────────
 [tool.pytest.ini_options]

@@ -54,6 +54,7 @@
       "cp *": "allow",
       "mv *": "allow",
       "echo *": "allow",
+      "gh auth *": "allow",
       "gh issue view *": "allow",
       "gh pr view *": "allow",
       "gh pr list *": "allow",

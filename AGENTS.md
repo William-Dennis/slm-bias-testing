@@ -21,7 +21,7 @@ demographic bias (CV screening, StereoSet, WinoBias, demographic completion).
 - Issue first, then branch, then PR.
 - Branch naming: `feat/`, `fix/`, `refactor/`, `docs/`, `test/`.
 - Conventional commits: `feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`.
-- Run `uv run ruff check src tests && uv run ruff format --check src tests && uv run mypy src/slm_bias_testing && uv run pytest` before pushing.
+- Run `uv run ruff check src tests && uv run ruff format --check src tests && uv run ty check && uv run pytest` before pushing.
 
 ## Architecture
 
@@ -53,7 +53,7 @@ src/slm_bias_testing/
 
 `.github/workflows/ci.yml` runs on push to main and all PRs:
 - Lint: `ruff check` + `ruff format --check`
-- Type Check: `mypy src/slm_bias_testing`
+- Type Check: `ty check`
 - Test: `pytest` on Python 3.11 + 3.12 matrix
 
 Branch protection requires all 4 checks to pass with strict mode (branch must be up-to-date with main).
