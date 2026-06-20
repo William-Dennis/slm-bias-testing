@@ -223,7 +223,7 @@ def run_benchmark(
     if cv_data is None:
         raise ValueError("cv_data must not be None after import")
     if max_samples is not None:
-        cv_data = cv_data[:max_samples]
+        cv_data = cv_data[:max_samples]  # ty: ignore[conflicting-declarations]
 
     records_filepath = os.path.join(output_dir, "records.csv")
     plots_dir = os.path.join(output_dir, "plots")

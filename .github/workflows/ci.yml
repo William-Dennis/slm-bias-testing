@@ -32,7 +32,7 @@ jobs:
         with:
           python-version: "3.11"
       - run: uv sync --extra dev
-      - run: uv run mypy src/slm_bias_testing
+      - run: uv run ty check --exclude tests
 
   test:
     name: Test (Python ${{ matrix.python-version }})
