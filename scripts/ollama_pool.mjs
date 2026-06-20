@@ -29,13 +29,13 @@ function flag(name, fallback) {
 }
 
 const MAX_POOL = Math.max(1, parseInt(flag("max-pool", "6"), 10));
-const MIN_POOL = Math.max(1, parseInt(flag("min-pool", "1"), 10));
 const ADAPTIVE = !args.includes("--no-adaptive");
 const RAM_FLOOR_GB = parseFloat(flag("ram-floor", "2"));
 const LATENCY_CEILING_MS = parseInt(flag("latency-ceiling", "15000"), 10);
 const TIMEOUT_MS = parseInt(flag("timeout", "30000"), 10);
 const RETRIES = Math.max(0, parseInt(flag("retries", "2"), 10));
 const OLLAMA_HOST = flag("ollama-host", "http://localhost:11434");
+const NO_RESTART = args.includes("--no-restart");
 
 // ── State ─────────────────────────────────────────────────────────────
 let activeWorkers = 0;
@@ -58,6 +58,15 @@ function writeResult(id, response, error, latencyMs) {
 
 // ── Ollama lifecycle ──────────────────────────────────────────────────
 async function setupOllama() {
+  if (NO_RESTART) {
+    if (await checkOllama()) {
+      log("Ollama already running (--no-restart)");
+      return true;
+    }
+    log("ERROR: Ollama not running and --no-restart specified");
+    return false;
+  }
+
   spawnSync("pkill", ["-f", "ollama serve"], { stdio: "ignore" });
   await sleep(1000);
 
@@ -147,6 +156,7 @@ function canDispatch() {
 
 // ── Worker pool ───────────────────────────────────────────────────────
 async function dispatchJob(job) {
+  pendingJobs++;
   while (!canDispatch() && !poolClosing) await sleep(50);
   if (poolClosing) { pendingJobs--; return; }
 
@@ -230,11 +240,7 @@ async function main() {
   // Process jobs that arrived during Ollama setup
   while (!poolClosing) {
     if (jobQueue.length > 0) {
-      pendingJobs++;
-      dispatchJob(jobQueue.shift()).catch((e) => {
-        log(`DISPATCH ERROR: ${e.message}`);
-        pendingJobs--;
-      });
+      dispatchJob(jobQueue.shift());
     } else if (stdinClosed && pendingJobs === 0) {
       break;
     } else {

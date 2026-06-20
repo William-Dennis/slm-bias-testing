@@ -50,7 +50,6 @@ def run_model_benchmarks(
     model_name: str,
     benchmark: str,
     base_output_dir: str,
-    timeout: int,
     max_samples: int | None = None,
     pool_size: int = 4,
     batch_size: int = 40,
@@ -195,7 +194,6 @@ def main() -> None:
         help="Benchmark to run (default: cv-screening)",
     )
     parser.add_argument("--output-dir", default="results", help="Base output directory")
-    parser.add_argument("--timeout", type=int, default=1800, help="Per-model timeout in seconds")
     parser.add_argument(
         "--max-samples", type=int, default=None, help="Max samples per benchmark (for testing)"
     )
@@ -241,7 +239,6 @@ def main() -> None:
             model_name,
             args.benchmark,
             args.output_dir,
-            args.timeout,
             args.max_samples,
             pool_size=args.pool_size,
             batch_size=args.batch_size,

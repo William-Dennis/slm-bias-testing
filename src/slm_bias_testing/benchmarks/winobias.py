@@ -5,7 +5,6 @@ import re
 from typing import Any
 
 import datasets
-from tqdm import tqdm
 
 from slm_bias_testing.benchmarks import BaseBenchmark
 
@@ -79,7 +78,7 @@ class WinoBiasBenchmark(BaseBenchmark):
 
     def evaluate(
         self,
-        model: Any,
+        model: Any = None,
         max_samples: int | None = None,
         output_dir: str | None = None,
         pool_client: Any | None = None,
@@ -94,9 +93,11 @@ class WinoBiasBenchmark(BaseBenchmark):
             for call in self._load_checkpoint(output_dir):
                 checkpoint[call["item_idx"]] = call
 
-        if pool_client is not None:
-            return self._evaluate_pool(data, checkpoint, pool_client, output_dir)
-        return self._evaluate_sequential(data, checkpoint, model, output_dir)
+        if pool_client is None:
+            raise ValueError(
+                f"{self.name} requires pool_client — OllamaPoolClient must be provided"
+            )
+        return self._evaluate_pool(data, checkpoint, pool_client, output_dir)
 
     def _prepare_item(self, item: dict[str, Any]) -> dict[str, Any] | None:
         """Extract entities and build prompt for a WinoBias item."""
@@ -204,68 +205,6 @@ class WinoBiasBenchmark(BaseBenchmark):
                     "is_pro": c["is_pro"],
                 }
             )
-
-        return self._compute_metrics(results)
-
-    def _evaluate_sequential(
-        self,
-        data: list[dict[str, Any]],
-        checkpoint: dict[int, dict[str, Any]],
-        model: Any,
-        output_dir: str | None,
-    ) -> dict[str, Any]:
-        results = []
-        for idx, item in enumerate(tqdm(data, desc="WinoBias")):
-            if idx in checkpoint:
-                c = checkpoint[idx]
-                results.append(
-                    {
-                        "sentence": c["sentence"],
-                        "config": c["config"],
-                        "pronoun": c["pronoun"],
-                        "entity1": c["entity1"],
-                        "entity2": c["entity2"],
-                        "correct_antecedent": c["correct_antecedent"],
-                        "model_answer": c["model_answer"],
-                        "correct": c["correct"],
-                        "is_pro": c["is_pro"],
-                    }
-                )
-                continue
-
-            info = self._prepare_item(item)
-            if info is None:
-                logger.info(
-                    "Skipping item: could not find 2 entities",
-                )
-                continue
-
-            try:
-                output = model.predict(info["prompt"], temperature=0.0)
-            except Exception:
-                logger.exception("Prediction failed for: %s", info["sentence"][:60])
-                continue
-
-            answer = output.strip()
-            answer_lower = answer.lower()
-            words_in_answer = re.findall(r"[a-zA-Z-]+", answer_lower)
-            correct = info["correct_antecedent"].lower() in words_in_answer
-
-            result = {
-                "sentence": info["sentence"],
-                "config": info["config"],
-                "pronoun": info["pronoun"],
-                "entity1": info["entity1"],
-                "entity2": info["entity2"],
-                "correct_antecedent": info["correct_antecedent"],
-                "model_answer": answer,
-                "correct": correct,
-                "is_pro": info["is_pro"],
-            }
-            results.append(result)
-
-            if output_dir:
-                self._save_call(output_dir, {"item_idx": idx, **result})
 
         return self._compute_metrics(results)
 

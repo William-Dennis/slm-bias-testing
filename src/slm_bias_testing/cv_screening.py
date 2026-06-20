@@ -134,7 +134,7 @@ def run_cv_screening(
         n_runs: Number of repeated runs per CV (default 10).
         pool_client: Optional OllamaPoolClient for batched parallel processing.
             When provided, jobs are dispatched to the Node.js worker pool.
-            When None, uses sequential per-item processing with a Model instance.
+            When None, a ValueError is raised (pool_client is required).
     """
     if cv_data is None or job_desc is None:
         cv_data, job_desc = _load_cv_examples()

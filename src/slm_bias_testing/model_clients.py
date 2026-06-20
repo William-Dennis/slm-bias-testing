@@ -5,15 +5,12 @@ from __future__ import annotations
 import contextlib
 import json
 import logging
-import os
 import subprocess
 import threading
+import time
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
-
-DEFAULT_NUM_CTX = max(256, min(131072, int(os.environ.get("SLM_NUM_CTX", "2048"))))
-DEFAULT_KEEP_ALIVE = max(0.0, min(300.0, float(os.environ.get("SLM_KEEP_ALIVE", "30"))))
 
 
 class OllamaPoolClient:
@@ -45,8 +42,6 @@ class OllamaPoolClient:
             str(script_path),
             "--max-pool",
             str(pool_size),
-            "--min-pool",
-            "1",
             "--ram-floor",
             str(ram_floor),
             "--latency-ceiling",
@@ -75,6 +70,22 @@ class OllamaPoolClient:
         self._stderr_thread = threading.Thread(target=self._drain_stderr, daemon=True)
         self._stderr_thread.start()
 
+        # Wait for pool to signal readiness
+        start = time.monotonic()
+        ready = False
+        deadline = start + 30  # 30 second timeout
+        while time.monotonic() < deadline:
+            for line in self._stderr_lines[-5:]:  # check recent stderr
+                if "Ollama started" in line or "Ollama already running" in line:
+                    ready = True
+                    break
+            if ready:
+                break
+            time.sleep(0.1)
+        if not ready:
+            self.close()
+            raise RuntimeError("Ollama pool failed to start within 30s")
+
     def predict_batch(self, jobs: list[dict]) -> dict[str, dict]:
         """Send batch of jobs to pool, read results as they stream back.
 
@@ -102,7 +113,8 @@ class OllamaPoolClient:
             )
 
         # Write all jobs to pool stdin
-        assert self._proc.stdin is not None, "Pool subprocess stdin is closed"
+        if self._proc.stdin is None:
+            raise RuntimeError("Pool subprocess stdin is closed")
         for job in full_jobs:
             self._proc.stdin.write(json.dumps(job) + "\n")
         self._proc.stdin.flush()
@@ -129,12 +141,14 @@ class OllamaPoolClient:
 
     def _read_line(self) -> str | None:
         """Read a single line from pool stdout. Returns None on EOF."""
-        assert self._proc.stdout is not None, "Pool subprocess stdout is closed"
+        if self._proc.stdout is None:
+            raise RuntimeError("Pool subprocess stdout is closed")
         return self._proc.stdout.readline() or None
 
     def _drain_stderr(self) -> None:
         """Background thread: read pool stderr to prevent buffer deadlock."""
-        assert self._proc.stderr is not None
+        if self._proc.stderr is None:
+            return
         for line in self._proc.stderr:
             self._stderr_lines.append(line.rstrip("\n"))
 
@@ -159,3 +173,10 @@ class OllamaPoolClient:
         # Log stderr for diagnostics
         for line in self._stderr_lines:
             logger.debug("pool: %s", line)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+        return False

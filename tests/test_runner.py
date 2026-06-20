@@ -24,7 +24,6 @@ class TestRunModelBenchmarks:
                 "smollm-135m",
                 "cv-screening",
                 tmpdir,
-                1800,
             )
 
             # pull_model is called once (before loop), but benchmark is skipped
@@ -43,7 +42,6 @@ class TestRunModelBenchmarks:
                 "smollm-135m",
                 "cv-screening",
                 tmpdir,
-                1800,
             )
 
             # Results dir should not be created
