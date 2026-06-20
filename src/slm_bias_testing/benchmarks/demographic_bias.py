@@ -79,7 +79,11 @@ class DemographicBiasBenchmark(BaseBenchmark):
         return self._data
 
     def evaluate(
-        self, model: Any, max_samples: int | None = None, output_dir: str | None = None
+        self,
+        model: Any,
+        max_samples: int | None = None,
+        output_dir: str | None = None,
+        pool_client: Any | None = None,
     ) -> dict[str, Any]:
         data = self.load_dataset()
         if max_samples is not None:
@@ -91,9 +95,83 @@ class DemographicBiasBenchmark(BaseBenchmark):
             for call in self._load_checkpoint(output_dir):
                 checkpoint[call["item_idx"]] = call
 
+        if pool_client is not None:
+            return self._evaluate_pool(data, checkpoint, pool_client, output_dir)
+        return self._evaluate_sequential(data, checkpoint, model, output_dir)
+
+    def _evaluate_pool(
+        self,
+        data: list[dict[str, Any]],
+        checkpoint: dict[int, dict[str, Any]],
+        pool_client: Any,
+        output_dir: str | None,
+    ) -> dict[str, Any]:
+        # Collect pending items
+        pending: list[tuple[int, dict[str, Any]]] = []
+        for idx, item in enumerate(data):
+            if idx not in checkpoint:
+                pending.append((idx, item))
+
+        # Process in batches
+        batch_size = pool_client.batch_size
+        for batch_start in range(0, len(pending), batch_size):
+            batch = pending[batch_start : batch_start + batch_size]
+            jobs = []
+            for idx, item in batch:
+                jobs.append(
+                    {
+                        "id": str(idx),
+                        "prompt": item["prompt"],
+                        "temperature": 0.0,
+                    }
+                )
+
+            results = pool_client.predict_batch(jobs)
+
+            for (idx, item), job in zip(batch, jobs, strict=True):
+                result = results.get(job["id"])
+                if result and not result["error"]:
+                    output_text = (result["response"] or "")[:200]
+                else:
+                    output_text = ""
+
+                record = {
+                    "item_idx": idx,
+                    "prompt": item["prompt"],
+                    "group": item["group"],
+                    "term": item["term"],
+                    "output": output_text,
+                    "output_length": len(output_text),
+                }
+                checkpoint[idx] = record
+                if output_dir:
+                    self._save_call(output_dir, record)
+
+        # Build final results from checkpoint
+        results_list = []
+        for idx in sorted(checkpoint.keys()):
+            c = checkpoint[idx]
+            results_list.append(
+                {
+                    "prompt": c["prompt"],
+                    "group": c["group"],
+                    "term": c["term"],
+                    "output": c["output"],
+                    "output_length": c["output_length"],
+                }
+            )
+
+        return self._aggregate_results(results_list)
+
+    def _evaluate_sequential(
+        self,
+        data: list[dict[str, Any]],
+        checkpoint: dict[int, dict[str, Any]],
+        model: Any,
+        output_dir: str | None,
+    ) -> dict[str, Any]:
         results = []
         for idx, item in enumerate(tqdm(data, desc="DemographicBias")):
-            # Check checkpoint first
             if idx in checkpoint:
                 c = checkpoint[idx]
                 results.append(
@@ -123,18 +201,13 @@ class DemographicBiasBenchmark(BaseBenchmark):
             }
             results.append(result)
 
-            # Save after every LLM call
             if output_dir:
-                self._save_call(
-                    output_dir,
-                    {
-                        "item_idx": idx,
-                        **result,
-                    },
-                )
+                self._save_call(output_dir, {"item_idx": idx, **result})
 
-        # Aggregate by group
-        groups = {}
+        return self._aggregate_results(results)
+
+    def _aggregate_results(self, results: list[dict[str, Any]]) -> dict[str, Any]:
+        groups: dict[str, dict[str, int]] = {}
         for r in results:
             g = r["group"]
             if g not in groups:

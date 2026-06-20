@@ -28,26 +28,32 @@ demographic bias (CV screening, StereoSet, WinoBias, demographic completion).
 ```
 src/slm_bias_testing/
 ├── analysis.py          # Statistical analysis (Cohen's d, variance breakdown)
-├── benchmark.py         # Core CV screening benchmark logic
-├── call_api.py          # Ollama + Transformers model clients (OllamaClient, Model)
-├── ollama_setup.py      # Ollama server lifecycle management
+├── benchmark_runner.py  # Core runner with pool lifecycle, model iteration
+├── cv_screening.py      # CV screening benchmark (batched via pool)
+├── model_clients.py     # OllamaPoolClient (Node.js pool subprocess)
 ├── registry.py          # Model registry (name → metadata)
-├── runner.py            # CLI runner for per-model benchmarks
 ├── temporal.py          # Temporal bias trend analysis + plotting
-├── transformers.py      # HuggingFace Transformers model wrapper
 └── benchmarks/
-    ├── __init__.py      # BaseBenchmark ABC
+    ├── __init__.py      # BaseBenchmark ABC (pool_client param)
     ├── demographic_bias.py
     ├── stereoset.py
     └── winobias.py
+
+scripts/
+├── run_benchmarks.py    # CLI entry point (one or all models, all benchmarks)
+└── ollama_pool.mjs      # Node.js worker pool for parallel Ollama calls
 ```
 
 ## Key Patterns
 
-- **No mutable globals.** Ollama state lives in `OllamaClient` instances, not module vars.
-- **Dependency injection.** `Model` accepts optional `OllamaClient`. Tests mock at the client level.
+- **Node.js pool for parallelism.** Python stays sequential. Pool handles all Ollama API calls.
+- **Batch protocol.** Python writes JSONL jobs to pool stdin, reads JSONL results from stdout.
+- **Per-model pool lifecycle.** Pool kills/restarts Ollama with correct OLLAMA_NUM_PARALLEL per model.
+- **Checkpoint after every batch.** Batch size configurable (default 40), checkpoint each item as result arrives.
+- **No mutable globals.** Pool state lives in subprocess, not Python module vars.
 - **Type annotations required.** Ty strict mode.
 - **All benchmarks extend `BaseBenchmark`.** Must implement `load_dataset()` and `evaluate()`.
+- **Benchmarks use `pool_client.predict_batch()`** for parallel processing when pool is available.
 
 ## CI Pipeline
 

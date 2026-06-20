@@ -7,7 +7,7 @@ Run your own evaluations, compare models, and visualise trends.
 
 ```bash
 uv sync --extra dev
-uv run python -m slm_bias_testing.runner smollm2-135m --benchmark all
+uv run python scripts/run_benchmarks.py --models smollm2-135m --benchmark all --pool-size 4
 ```
 
 ---
@@ -50,17 +50,14 @@ Four bias benchmarks, one command per model:
 # Install
 uv sync --extra dev
 
-# Run all benchmarks on one model
-uv run python -m slm_bias_testing.runner smollm2-135m --benchmark all
+# Run all benchmarks on one model (uses Node.js pool for parallelism)
+uv run python scripts/run_benchmarks.py --models smollm2-135m --benchmark all --pool-size 4
 
 # Run a specific benchmark with limited samples
-uv run python -m slm_bias_testing.runner smollm2-135m --benchmark stereoset --max-samples 20
+uv run python scripts/run_benchmarks.py --models smollm2-135m --benchmark stereoset --max-samples 20 --pool-size 2
 
-# Batch: multiple models, one benchmark
-uv run python scripts/run_experiments.py \
-  --models smollm2-135m,smollm2-360m \
-  --benchmarks stereoset \
-  --max-samples 20
+# Run all models, all benchmarks
+uv run python scripts/run_benchmarks.py --models all --pool-size 6
 
 # Temporal trend analysis
 uv run python -m slm_bias_testing.temporal
@@ -90,19 +87,20 @@ figs/
 
 ```
 src/slm_bias_testing/
-  registry.py       — Model definitions (name → ollama tag)
-  runner.py         — CLI entry point for running benchmarks
-  benchmark.py      — CV screening benchmark
-  call_api.py       — Ollama model API client
-  temporal.py       — Temporal analysis & trend plots
-  analysis.py       — Statistical helpers (CI, Cohen's d, variance)
+  registry.py           — Model definitions (name → ollama tag)
+  benchmark_runner.py   — Core runner with pool lifecycle
+  cv_screening.py       — CV screening benchmark
+  model_clients.py      — OllamaPoolClient (Node.js pool subprocess)
+  temporal.py           — Temporal analysis & trend plots
+  analysis.py           — Statistical helpers (CI, Cohen's d, variance)
   benchmarks/
     stereoset.py         — StereoSet benchmark
     winobias.py          — WinoBias gender coreference benchmark
     demographic_bias.py  — Output length disparity benchmark
 
 scripts/
-  run_experiments.py  — Batch runner (kill-safe, skips completed)
+  run_benchmarks.py     — CLI entry point (one or all models, all benchmarks)
+  ollama_pool.mjs       — Node.js worker pool for parallel Ollama calls
 
 examples/             — CV data, job description, templates
 tests/                — 114 tests
@@ -113,6 +111,7 @@ tests/                — 114 tests
 ## Prerequisites
 
 - [Ollama](https://ollama.ai) — all models run locally
+- [Node.js](https://nodejs.org) — for the parallel worker pool
 - `uv` (or `pip`) for Python dependencies
 
 ---

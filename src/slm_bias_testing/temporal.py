@@ -284,7 +284,7 @@ def main() -> pd.DataFrame:
     if not records:
         print(f"No results found in {args.results_dir}/")
         print("Run benchmarks first, e.g.:")
-        print("  uv run python scripts/run_experiments.py --benchmarks all")
+        print("  uv run python scripts/run_benchmarks.py --models all --pool-size 4")
         sys.exit(1)
 
     df = merge_registry(records)

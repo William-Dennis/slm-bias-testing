@@ -53,7 +53,11 @@ class BaseBenchmark(ABC):
 
     @abstractmethod
     def evaluate(
-        self, model: Any, max_samples: int | None = None, output_dir: str | None = None
+        self,
+        model: Any,
+        max_samples: int | None = None,
+        output_dir: str | None = None,
+        pool_client: Any | None = None,
     ) -> dict[str, Any]: ...
 
     def save_results(self, results: dict[str, Any], output_dir: str) -> None:
