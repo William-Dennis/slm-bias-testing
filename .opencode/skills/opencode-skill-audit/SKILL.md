@@ -1,5 +1,5 @@
 ---
-name: skill-audit
+name: opencode-skill-audit
 description: Audit SKILL.md files for compliance with the OpenCode skills spec.
 ---
 
