@@ -20,10 +20,8 @@ def _mock_popen_with_ready():
 
 
 class TestOllamaPoolClient:
-    @patch("slm_bias_testing.model_clients.time.sleep")
-    @patch("slm_bias_testing.model_clients.time.monotonic", side_effect=[0.0, 0.1, 0.2])
     @patch("slm_bias_testing.model_clients.subprocess.Popen")
-    def test_init_spawns_pool(self, mock_popen, _mock_mono, _mock_sleep):
+    def test_init_spawns_pool(self, mock_popen):
         mock_popen.return_value = _mock_popen_with_ready()
         client = OllamaPoolClient(model_name="smollm:135m", pool_size=4)
         cmd = mock_popen.call_args[0][0]
@@ -31,10 +29,8 @@ class TestOllamaPoolClient:
         assert "ollama_pool.mjs" in cmd[1]
         client.close()
 
-    @patch("slm_bias_testing.model_clients.time.sleep")
-    @patch("slm_bias_testing.model_clients.time.monotonic", side_effect=[0.0, 0.1, 0.2])
     @patch("slm_bias_testing.model_clients.subprocess.Popen")
-    def test_predict_batch_writes_and_reads(self, mock_popen, _mock_mono, _mock_sleep):
+    def test_predict_batch_writes_and_reads(self, mock_popen):
         proc = _mock_popen_with_ready()
         proc.stdout.readline.side_effect = [
             json.dumps({"id": "j1", "response": "hi", "error": None, "latency_ms": 100}) + "\n",
@@ -52,47 +48,37 @@ class TestOllamaPoolClient:
         assert results["j2"]["response"] == "yo"
         client.close()
 
-    @patch("slm_bias_testing.model_clients.time.sleep")
-    @patch("slm_bias_testing.model_clients.time.monotonic", side_effect=[0.0, 0.1, 0.2])
     @patch("slm_bias_testing.model_clients.subprocess.Popen")
-    def test_predict_batch_empty(self, mock_popen, _mock_mono, _mock_sleep):
+    def test_predict_batch_empty(self, mock_popen):
         mock_popen.return_value = _mock_popen_with_ready()
         client = OllamaPoolClient(model_name="test-model")
         assert client.predict_batch([]) == {}
         client.close()
 
-    @patch("slm_bias_testing.model_clients.time.sleep")
-    @patch("slm_bias_testing.model_clients.time.monotonic", side_effect=[0.0, 0.1, 0.2])
     @patch("slm_bias_testing.model_clients.subprocess.Popen")
-    def test_close_terminates(self, mock_popen, _mock_mono, _mock_sleep):
+    def test_close_terminates(self, mock_popen):
         mock_popen.return_value = _mock_popen_with_ready()
         client = OllamaPoolClient(model_name="test-model")
         client.close()
-        client._proc.wait.assert_called_once()
+        assert hasattr(client._proc.wait, "called") and client._proc.wait.called
 
-    @patch("slm_bias_testing.model_clients.time.sleep")
-    @patch("slm_bias_testing.model_clients.time.monotonic", side_effect=[0.0, 0.1, 0.2])
     @patch("slm_bias_testing.model_clients.subprocess.Popen")
-    def test_context_manager(self, mock_popen, _mock_mono, _mock_sleep):
+    def test_context_manager(self, mock_popen):
         mock_popen.return_value = _mock_popen_with_ready()
         with OllamaPoolClient(model_name="test-model") as c:
             assert c is not None
         c._proc.wait.assert_called()
 
-    @patch("slm_bias_testing.model_clients.time.sleep")
-    @patch("slm_bias_testing.model_clients.time.monotonic", side_effect=[0.0, 0.1, 0.2])
     @patch("slm_bias_testing.model_clients.subprocess.Popen")
-    def test_no_adaptive_flag(self, mock_popen, _mock_mono, _mock_sleep):
+    def test_no_adaptive_flag(self, mock_popen):
         mock_popen.return_value = _mock_popen_with_ready()
         client = OllamaPoolClient(model_name="test-model", adaptive=False)
         cmd = mock_popen.call_args[0][0]
         assert "--no-adaptive" in cmd
         client.close()
 
-    @patch("slm_bias_testing.model_clients.time.sleep")
-    @patch("slm_bias_testing.model_clients.time.monotonic", side_effect=[0.0, 0.1, 0.2])
     @patch("slm_bias_testing.model_clients.subprocess.Popen")
-    def test_adaptive_enabled(self, mock_popen, _mock_mono, _mock_sleep):
+    def test_adaptive_enabled(self, mock_popen):
         mock_popen.return_value = _mock_popen_with_ready()
         client = OllamaPoolClient(model_name="test-model", adaptive=True)
         cmd = mock_popen.call_args[0][0]

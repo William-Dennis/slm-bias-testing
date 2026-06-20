@@ -73,23 +73,29 @@ def _pool_batch(jobs: list[dict], pool_size: int, no_restart: bool = False) -> l
         text=True,
         bufsize=1,
     )
+    assert proc.stdin is not None
+    assert proc.stdout is not None
+    assert proc.stderr is not None
+    stdin = proc.stdin
+    stdout = proc.stdout
+    stderr = proc.stderr
     stderr_lines: list[str] = []
 
     def drain():
-        for line in proc.stderr:
+        for line in stderr:
             stderr_lines.append(line.rstrip())
 
     t = threading.Thread(target=drain, daemon=True)
     t.start()
 
     for job in jobs:
-        proc.stdin.write(json.dumps(job) + "\n")
-    proc.stdin.flush()
-    proc.stdin.close()
+        stdin.write(json.dumps(job) + "\n")
+    stdin.flush()
+    stdin.close()
 
     results = []
     for _ in range(len(jobs)):
-        line = proc.stdout.readline()
+        line = stdout.readline()
         if not line:
             break
         results.append(json.loads(line))

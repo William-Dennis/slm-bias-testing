@@ -7,7 +7,6 @@ import json
 import logging
 import subprocess
 import threading
-import time
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -67,22 +66,12 @@ class OllamaPoolClient:
         )
         self._read_lock = threading.Lock()
         self._stderr_lines: list[str] = []
+        self._ready_event = threading.Event()
         self._stderr_thread = threading.Thread(target=self._drain_stderr, daemon=True)
         self._stderr_thread.start()
 
-        # Wait for pool to signal readiness
-        start = time.monotonic()
-        ready = False
-        deadline = start + 30  # 30 second timeout
-        while time.monotonic() < deadline:
-            for line in self._stderr_lines[-5:]:  # check recent stderr
-                if "Ollama started" in line or "Ollama already running" in line:
-                    ready = True
-                    break
-            if ready:
-                break
-            time.sleep(0.1)
-        if not ready:
+        # Wait for pool to signal readiness (drain thread sets the event)
+        if not self._ready_event.wait(timeout=30):
             self.close()
             raise RuntimeError("Ollama pool failed to start within 30s")
 
@@ -146,11 +135,19 @@ class OllamaPoolClient:
         return self._proc.stdout.readline() or None
 
     def _drain_stderr(self) -> None:
-        """Background thread: read pool stderr to prevent buffer deadlock."""
+        """Background thread: read pool stderr to prevent buffer deadlock.
+
+        Also detects the Ollama ready signal and sets ``_ready_event``.
+        """
         if self._proc.stderr is None:
             return
         for line in self._proc.stderr:
-            self._stderr_lines.append(line.rstrip("\n"))
+            stripped = line.rstrip("\n")
+            self._stderr_lines.append(stripped)
+            if not self._ready_event.is_set() and (
+                "Ollama started" in stripped or "Ollama already running" in stripped
+            ):
+                self._ready_event.set()
 
     def close(self) -> None:
         """Close stdin and wait for pool to drain and exit."""

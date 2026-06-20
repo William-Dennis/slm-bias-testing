@@ -55,17 +55,6 @@ class TestBaseBenchmark:
             assert bm.load_results(tmpdir) is None
 
 
-class MockModel:
-    def __init__(self, responses: dict | None = None):
-        self.responses = responses or {}
-
-    def predict(self, prompt: str, temperature: float = 0.0) -> str:
-        for key, val in self.responses.items():
-            if key in prompt:
-                return val
-        return "50"
-
-
 class MockPoolClient:
     """Mock pool client that returns pre-configured responses."""
 
@@ -535,3 +524,22 @@ class TestWinoBiasPool:
                 results = bm.evaluate(None, pool_client=pool, output_dir=tmpdir)
                 assert results["n_examples"] == 1
                 assert results["overall_accuracy"] == 100.0
+
+
+class TestPoolClientRequired:
+    """Verify that benchmarks raise ValueError when pool_client is None."""
+
+    def test_stereoset_requires_pool_client(self):
+        bm = StereoSetBenchmark()
+        with pytest.raises(ValueError, match="pool_client"):
+            bm.evaluate(None)
+
+    def test_winobias_requires_pool_client(self):
+        bm = WinoBiasBenchmark()
+        with pytest.raises(ValueError, match="pool_client"):
+            bm.evaluate(None)
+
+    def test_demographic_bias_requires_pool_client(self):
+        bm = DemographicBiasBenchmark()
+        with pytest.raises(ValueError, match="pool_client"):
+            bm.evaluate(None)
