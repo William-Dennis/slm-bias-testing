@@ -24,6 +24,7 @@ class OllamaPoolClient:
         model_name: str,
         pool_size: int = 4,
         batch_size: int = 40,
+        adaptive: bool = False,
         ollama_host: str = "http://localhost:11434",
         ram_floor: float = 2.0,
         latency_ceiling: int = 15000,
@@ -57,6 +58,8 @@ class OllamaPoolClient:
             "--ollama-host",
             ollama_host,
         ]
+        if not adaptive:
+            cmd.append("--no-adaptive")
 
         logger.info("Starting pool: %s", " ".join(cmd))
         self._proc = subprocess.Popen(
@@ -68,6 +71,9 @@ class OllamaPoolClient:
             bufsize=1,
         )
         self._read_lock = threading.Lock()
+        self._stderr_lines: list[str] = []
+        self._stderr_thread = threading.Thread(target=self._drain_stderr, daemon=True)
+        self._stderr_thread.start()
 
     def predict_batch(self, jobs: list[dict]) -> dict[str, dict]:
         """Send batch of jobs to pool, read results as they stream back.
@@ -126,6 +132,12 @@ class OllamaPoolClient:
         assert self._proc.stdout is not None, "Pool subprocess stdout is closed"
         return self._proc.stdout.readline() or None
 
+    def _drain_stderr(self) -> None:
+        """Background thread: read pool stderr to prevent buffer deadlock."""
+        assert self._proc.stderr is not None
+        for line in self._proc.stderr:
+            self._stderr_lines.append(line.rstrip("\n"))
+
     def close(self) -> None:
         """Close stdin and wait for pool to drain and exit."""
         if self._proc.stdin:
@@ -142,9 +154,8 @@ class OllamaPoolClient:
                 logger.warning("Pool did not terminate, killing")
                 self._proc.kill()
 
+        self._stderr_thread.join(timeout=5)
+
         # Log stderr for diagnostics
-        if self._proc.stderr:
-            stderr_text = self._proc.stderr.read()
-            if stderr_text.strip():
-                for line in stderr_text.strip().split("\n"):
-                    logger.debug("pool: %s", line)
+        for line in self._stderr_lines:
+            logger.debug("pool: %s", line)

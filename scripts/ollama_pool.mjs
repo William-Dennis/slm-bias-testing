@@ -16,7 +16,7 @@
 import * as readline from "node:readline";
 import * as http from "node:http";
 import * as os from "node:os";
-import { spawnSync } from "node:child_process";
+import { spawnSync, spawn } from "node:child_process";
 
 // ── CLI args ──────────────────────────────────────────────────────────
 const args = process.argv.slice(2);
@@ -39,6 +39,7 @@ const OLLAMA_HOST = flag("ollama-host", "http://localhost:11434");
 
 // ── State ─────────────────────────────────────────────────────────────
 let activeWorkers = 0;
+let pendingJobs = 0;  // jobs submitted but not yet completed
 let dispatched = 0;
 let completed = 0;
 let errors = 0;
@@ -61,7 +62,7 @@ async function setupOllama() {
   await sleep(1000);
 
   const env = { ...process.env, OLLAMA_NUM_PARALLEL: String(MAX_POOL) };
-  const child = spawnSync("ollama", ["serve"], { env, stdio: "ignore", detached: true });
+  const child = spawn("ollama", ["serve"], { env, stdio: "ignore", detached: true });
   child.unref();
 
   for (let i = 0; i < 15; i++) {
@@ -147,7 +148,7 @@ function canDispatch() {
 // ── Worker pool ───────────────────────────────────────────────────────
 async function dispatchJob(job) {
   while (!canDispatch() && !poolClosing) await sleep(50);
-  if (poolClosing) return;
+  if (poolClosing) { pendingJobs--; return; }
 
   activeWorkers++;
   dispatched++;
@@ -173,6 +174,7 @@ async function dispatchJob(job) {
       writeResult(job.id, content, null, latencyMs);
       completed++;
       activeWorkers--;
+      pendingJobs--;
       return;
     } catch (e) {
       if (attempt < RETRIES) {
@@ -184,6 +186,7 @@ async function dispatchJob(job) {
   writeResult(job.id, null, "max retries exceeded", Date.now() - startTime);
   errors++;
   activeWorkers--;
+  pendingJobs--;
 }
 
 // ── Status reporting ──────────────────────────────────────────────────
@@ -198,35 +201,41 @@ function logStatus() {
 }
 
 // ── Main ──────────────────────────────────────────────────────────────
+const jobQueue = [];
+
+// Start reading stdin immediately (before Ollama setup)
+const rl = readline.createInterface({ input: process.stdin, terminal: false });
+rl.on("line", (line) => {
+  const trimmed = line.trim();
+  if (!trimmed) return;
+  try {
+    const job = JSON.parse(trimmed);
+    if (!job.id || !job.model || !job.prompt) {
+      log(`WARN: skipping invalid job: ${trimmed.substring(0, 100)}`);
+      return;
+    }
+    jobQueue.push(job);
+  } catch {
+    log(`WARN: skipping invalid JSON: ${trimmed.substring(0, 100)}`);
+  }
+});
+rl.on("close", () => { stdinClosed = true; log("stdin closed, draining queue..."); });
+
 async function main() {
+  // Setup Ollama while stdin is already being read and jobs queued
   if (!(await setupOllama())) process.exit(1);
 
   const statusInterval = setInterval(logStatus, 30000);
-  const rl = readline.createInterface({ input: process.stdin, terminal: false });
-  const jobQueue = [];
 
-  rl.on("line", (line) => {
-    const trimmed = line.trim();
-    if (!trimmed) return;
-    try {
-      const job = JSON.parse(trimmed);
-      if (!job.id || !job.model || !job.prompt) {
-        log(`WARN: skipping invalid job: ${trimmed.substring(0, 100)}`);
-        return;
-      }
-      jobQueue.push(job);
-    } catch {
-      log(`WARN: skipping invalid JSON: ${trimmed.substring(0, 100)}`);
-    }
-  });
-
-  rl.on("close", () => { stdinClosed = true; log("stdin closed, draining queue..."); });
-
-  // Process jobs as they arrive
+  // Process jobs that arrived during Ollama setup
   while (!poolClosing) {
     if (jobQueue.length > 0) {
-      dispatchJob(jobQueue.shift());
-    } else if (stdinClosed && activeWorkers === 0) {
+      pendingJobs++;
+      dispatchJob(jobQueue.shift()).catch((e) => {
+        log(`DISPATCH ERROR: ${e.message}`);
+        pendingJobs--;
+      });
+    } else if (stdinClosed && pendingJobs === 0) {
       break;
     } else {
       await sleep(10);
@@ -239,7 +248,6 @@ async function main() {
   process.exit(0);
 }
 
-// ── Graceful shutdown ─────────────────────────────────────────────────
 process.on("SIGTERM", () => { log("SIGTERM received, shutting down..."); poolClosing = true; });
 process.on("SIGINT", () => { log("SIGINT received, shutting down..."); poolClosing = true; });
 
