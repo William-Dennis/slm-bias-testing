@@ -46,7 +46,7 @@ src/slm_bias_testing/
 
 - **No mutable globals.** Ollama state lives in `OllamaClient` instances, not module vars.
 - **Dependency injection.** `Model` accepts optional `OllamaClient`. Tests mock at the client level.
-- **Type annotations required.** Mypy strict mode (`disallow_untyped_defs`).
+- **Type annotations required.** Ty strict mode.
 - **All benchmarks extend `BaseBenchmark`.** Must implement `load_dataset()` and `evaluate()`.
 
 ## CI Pipeline
