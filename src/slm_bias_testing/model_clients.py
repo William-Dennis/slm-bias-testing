@@ -130,7 +130,7 @@ class OllamaPoolClient:
         missing = expected_ids - results.keys()
         if missing:
             raise RuntimeError(
-                f"Pool returned incomplete results — missing {len(missing)} job(s): {str(missing)}"
+                f"Pool returned incomplete results — missing {len(missing)} job(s): {missing!s}"
             )
 
         return results
