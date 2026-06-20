@@ -70,7 +70,16 @@ class TestOllamaPoolClient:
         assert hasattr(c._proc.wait, "called") and c._proc.wait.called
 
     @patch("slm_bias_testing.model_clients.subprocess.Popen")
-    def test_no_adaptive_flag(self, mock_popen):
+    def test_adaptive_default(self, mock_popen):
+        """Default is adaptive=True — no --no-adaptive flag."""
+        mock_popen.return_value = _mock_popen_with_ready()
+        client = OllamaPoolClient(model_name="test-model")
+        cmd = mock_popen.call_args[0][0]
+        assert "--no-adaptive" not in cmd
+        client.close()
+
+    @patch("slm_bias_testing.model_clients.subprocess.Popen")
+    def test_no_adaptive_explicit(self, mock_popen):
         mock_popen.return_value = _mock_popen_with_ready()
         client = OllamaPoolClient(model_name="test-model", adaptive=False)
         cmd = mock_popen.call_args[0][0]
@@ -78,9 +87,16 @@ class TestOllamaPoolClient:
         client.close()
 
     @patch("slm_bias_testing.model_clients.subprocess.Popen")
-    def test_adaptive_enabled(self, mock_popen):
+    def test_adaptive_explicit(self, mock_popen):
         mock_popen.return_value = _mock_popen_with_ready()
         client = OllamaPoolClient(model_name="test-model", adaptive=True)
         cmd = mock_popen.call_args[0][0]
         assert "--no-adaptive" not in cmd
+        client.close()
+
+    @patch("slm_bias_testing.model_clients.subprocess.Popen")
+    def test_batch_timeout_default(self, mock_popen):
+        mock_popen.return_value = _mock_popen_with_ready()
+        client = OllamaPoolClient(model_name="test-model")
+        assert client.batch_timeout == 300
         client.close()

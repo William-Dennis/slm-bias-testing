@@ -8,7 +8,6 @@ import logging
 import os
 import re
 import textwrap
-from pathlib import Path
 from typing import Any
 
 import matplotlib.pyplot as plt
@@ -101,15 +100,9 @@ def _load_checkpoint(output_dir: str) -> set[tuple[str, int]]:
 
 
 def _load_cv_examples() -> tuple[list[dict[str, Any]], str]:
-    """Load default CV data and job description from examples/."""
-    import sys
-
-    repo_root = str(Path(__file__).resolve().parent.parent.parent)
-    if repo_root not in sys.path:
-        sys.path.insert(0, repo_root)
-
-    from examples.cvs import cvs as cv_data
-    from examples.job_description import job_description as job_desc
+    """Load default CV data and job description from data/."""
+    from slm_bias_testing.data.cvs import cvs as cv_data
+    from slm_bias_testing.data.job_description import job_description as job_desc
 
     return cv_data, job_desc
 

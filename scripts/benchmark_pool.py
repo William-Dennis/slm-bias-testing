@@ -48,7 +48,9 @@ def _ollama_chat(prompt: str, model: str) -> float:
         data=body,
         headers={"Content-Type": "application/json"},
     )
-    urllib.request.urlopen(req, timeout=60)
+    resp = urllib.request.urlopen(req, timeout=60)
+    resp.read()
+    resp.close()
     return time.monotonic() - start
 
 

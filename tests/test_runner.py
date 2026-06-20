@@ -4,9 +4,10 @@ from slm_bias_testing.benchmark_runner import run_model_benchmarks
 
 
 class TestRunModelBenchmarks:
+    @patch("slm_bias_testing.model_clients.OllamaPoolClient")
     @patch("slm_bias_testing.benchmark_runner.pull_model", return_value=True)
     @patch("slm_bias_testing.benchmark_runner.get_model")
-    def test_skip_existing_results(self, mock_get_model, mock_pull):
+    def test_skip_existing_results(self, mock_get_model, mock_pull, mock_pool):
         import json
         import os
         import tempfile
@@ -29,9 +30,10 @@ class TestRunModelBenchmarks:
             # pull_model is called once (before loop), but benchmark is skipped
             mock_pull.assert_called_once()
 
+    @patch("slm_bias_testing.model_clients.OllamaPoolClient")
     @patch("slm_bias_testing.benchmark_runner.pull_model", return_value=False)
     @patch("slm_bias_testing.benchmark_runner.get_model")
-    def test_skip_on_pull_failure(self, mock_get_model, mock_pull):
+    def test_skip_on_pull_failure(self, mock_get_model, mock_pull, mock_pool):
         import os
         import tempfile
 

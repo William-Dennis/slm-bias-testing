@@ -5,11 +5,21 @@ from __future__ import annotations
 import contextlib
 import json
 import logging
+import signal
 import subprocess
 import threading
+from collections import deque
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from types import TracebackType
 
 logger = logging.getLogger(__name__)
+
+
+class BatchTimeoutError(Exception):
+    """Raised when a predict_batch call exceeds its configured timeout."""
 
 
 class OllamaPoolClient:
@@ -20,7 +30,8 @@ class OllamaPoolClient:
         model_name: str,
         pool_size: int = 4,
         batch_size: int = 40,
-        adaptive: bool = False,
+        adaptive: bool = True,
+        batch_timeout: int = 300,
         ollama_host: str = "http://localhost:11434",
         ram_floor: float = 2.0,
         latency_ceiling: int = 15000,
@@ -32,6 +43,7 @@ class OllamaPoolClient:
         self.model_name = model_name
         self.pool_size = pool_size
         self.batch_size = batch_size
+        self.batch_timeout = batch_timeout
         self.keep_alive = keep_alive
         self.num_ctx = num_ctx
 
@@ -65,7 +77,7 @@ class OllamaPoolClient:
             bufsize=1,
         )
         self._read_lock = threading.Lock()
-        self._stderr_lines: list[str] = []
+        self._stderr_lines: deque[str] = deque(maxlen=100)
         self._ready_event = threading.Event()
         self._stderr_thread = threading.Thread(target=self._drain_stderr, daemon=True)
         self._stderr_thread.start()
@@ -108,24 +120,38 @@ class OllamaPoolClient:
             self._proc.stdin.write(json.dumps(job) + "\n")
         self._proc.stdin.flush()
 
-        # Read exactly len(jobs) results from stdout
+        # Read exactly len(jobs) results from stdout with a batch-level timeout
         results: dict[str, dict] = {}
         expected_ids = {job["id"] for job in full_jobs}
-        with self._read_lock:
-            for _ in range(len(full_jobs)):
-                line = self._read_line()
-                if line is None:
-                    logger.error("Pool subprocess closed before all results received")
-                    break
-                try:
-                    parsed = json.loads(line)
-                    job_id = parsed["id"]
-                    results[job_id] = {
-                        "response": parsed.get("response"),
-                        "error": parsed.get("error"),
-                    }
-                except (json.JSONDecodeError, KeyError) as e:
-                    logger.error("Failed to parse pool result: %s", e)
+        old_alarm = signal.alarm(0)  # Save and disarm any existing alarm
+        signal.signal(signal.SIGALRM, self._batch_timeout_handler)
+        signal.alarm(self.batch_timeout)
+        try:
+            with self._read_lock:
+                for _ in range(len(full_jobs)):
+                    line = self._read_line()
+                    if line is None:
+                        logger.error("Pool subprocess closed before all results received")
+                        break
+                    try:
+                        parsed = json.loads(line)
+                        job_id = parsed["id"]
+                        results[job_id] = {
+                            "response": parsed.get("response"),
+                            "error": parsed.get("error"),
+                        }
+                    except (json.JSONDecodeError, KeyError) as e:
+                        logger.error("Failed to parse pool result: %s", e)
+        except BatchTimeoutError:
+            logger.error(
+                "Batch timed out after %ds — got %d/%d results",
+                self.batch_timeout,
+                len(results),
+                len(full_jobs),
+            )
+            raise
+        finally:
+            signal.alarm(old_alarm)  # Restore previous alarm
 
         missing = expected_ids - results.keys()
         if missing:
@@ -134,6 +160,10 @@ class OllamaPoolClient:
             )
 
         return results
+
+    @staticmethod
+    def _batch_timeout_handler(signum: int, frame: object | None) -> None:
+        raise BatchTimeoutError("Batch read exceeded configured timeout")
 
     def _read_line(self) -> str | None:
         """Read a single line from pool stdout. Returns None on EOF."""
@@ -185,6 +215,6 @@ class OllamaPoolClient:
         self,
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
-        exc_tb: type[BaseException] | None,
+        exc_tb: TracebackType | None,
     ) -> None:
         self.close()

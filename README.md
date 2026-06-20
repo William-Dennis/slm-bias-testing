@@ -116,6 +116,64 @@ tests/                — 114 tests
 
 ---
 
+## Ollama Pool Configuration
+
+The benchmark runner uses a Node.js worker pool (`scripts/ollama_pool.mjs`) to send
+multiple requests to Ollama concurrently. For this to provide a speedup, Ollama must
+be configured to handle parallel requests via `OLLAMA_NUM_PARALLEL`.
+
+**Without this setting, all pool workers are serialised internally** — no speedup.
+
+### macOS (Ollama app)
+
+Shell env vars do **not** propagate to macOS app processes. Use `launchctl`:
+
+```bash
+launchctl setenv OLLAMA_NUM_PARALLEL 4
+launchctl setenv OLLAMA_FLASH_ATTENTION 1
+launchctl setenv OLLAMA_KV_CACHE_TYPE q8_0
+```
+
+Then restart the Ollama app. Verify the vars are active:
+
+```bash
+ps eww $(pgrep -f "ollama serve" | head -1) | tr ' ' '\n' | grep OLLAMA
+```
+
+Expected output:
+
+```
+OLLAMA_MODELS=...
+OLLAMA_NO_CLOUD=1
+OLLAMA_NUM_PARALLEL=4
+OLLAMA_FLASH_ATTENTION=1
+OLLAMA_KV_CACHE_TYPE=q8_0
+```
+
+### Linux / `ollama serve` from terminal
+
+Env vars propagate normally — set them before starting the server:
+
+```bash
+export OLLAMA_NUM_PARALLEL=4
+ollama serve
+```
+
+### Caveats
+
+- `OLLAMA_NUM_PARALLEL` enables **batched inference** (N requests share one forward pass
+  with N× context size), **not** true parallel execution. Expected speedup is 1.5–2.5×,
+  not N×.
+- Smaller / faster models saturate the batching limit sooner. Measured speedups:
+
+| Model | Size | Sequential | Pool 4w | Speedup |
+|---|---|---|---|---|
+| smollm:135m | 92MB Q4_0 | 2.3/s | 4.4/s | 1.9× |
+| qwen2.5:0.5b | 397MB Q4_K_M | 5.1/s | 10.6/s | 2.1× |
+| qwen3:0.6b | 522MB Q4_K_M | 0.6/s | 1.4/s | 2.6× |
+
+---
+
 ## Tests
 
 ```bash

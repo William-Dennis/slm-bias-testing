@@ -54,6 +54,7 @@ def run_model_benchmarks(
     pool_size: int = 4,
     batch_size: int = 40,
     n_runs: int = 3,
+    adaptive: bool = True,
 ) -> None:
     """Run benchmark(s) for a single model with resume support."""
     from slm_bias_testing.model_clients import OllamaPoolClient
@@ -72,6 +73,7 @@ def run_model_benchmarks(
         model_name=ollama_tag,
         pool_size=pool_size,
         batch_size=batch_size,
+        adaptive=adaptive,
     )
 
     try:
@@ -215,6 +217,20 @@ def main() -> None:
         default=3,
         help="Number of repeated runs per CV in cv-screening (default: 3)",
     )
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
+        "--adaptive",
+        action="store_true",
+        dest="adaptive",
+        default=True,
+        help="Enable adaptive concurrency in the pool (default)",
+    )
+    group.add_argument(
+        "--no-adaptive",
+        action="store_false",
+        dest="adaptive",
+        help="Disable adaptive concurrency in the pool",
+    )
     parser.add_argument("--verbose", action="store_true", help="Enable debug logging")
     args = parser.parse_args()
 
@@ -243,6 +259,7 @@ def main() -> None:
             pool_size=args.pool_size,
             batch_size=args.batch_size,
             n_runs=args.n_runs,
+            adaptive=args.adaptive,
         )
 
 
