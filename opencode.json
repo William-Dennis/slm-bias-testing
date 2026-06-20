@@ -1,0 +1,94 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "opencode-go/mimo-v2.5",
+  "instructions": ["AGENTS.md"],
+  "skills": {
+    "paths": [".opencode/skills"]
+  },
+  "plugin": [".opencode/plugins/write-size-guard.ts"],
+  "agent": {
+    "python-engineer": {
+      "description": "Implements small, well-tested Python changes using uv, ruff, mypy, and pytest.",
+      "mode": "subagent"
+    }
+  },
+  "command": {
+    "check": {
+      "description": "Run format, lint, type, and test checks",
+      "template": "Run the project checks and report failures clearly: `uv run ruff format --check src tests`, `uv run ruff check src tests`, `uv run mypy src/slm_bias_testing`, and `uv run pytest`."
+    },
+    "grill-me": {
+      "description": "Stress-test a plan or design",
+      "template": "Use the grill-me skill to stress-test this plan or design: $ARGUMENTS"
+    }
+  },
+  "permission": {
+    "read": "allow",
+    "edit": "allow",
+    "bash": {
+      "uv run *": "allow",
+      "uv sync *": "allow",
+      "git status": "allow",
+      "git fetch *": "allow",
+      "git log *": "allow",
+      "git diff *": "allow",
+      "git show *": "allow",
+      "git rev-parse *": "allow",
+      "git branch --show-current": "allow",
+      "git branch -a": "allow",
+      "git add *": "allow",
+      "git commit *": "allow",
+      "ls *": "allow",
+      "cat *": "allow",
+      "find *": "allow",
+      "grep *": "allow",
+      "head *": "allow",
+      "tail *": "allow",
+      "wc *": "allow",
+      "pwd": "allow",
+      "tree *": "allow",
+      "file *": "allow",
+      "which *": "allow",
+      "mkdir *": "allow",
+      "touch *": "allow",
+      "cp *": "allow",
+      "mv *": "allow",
+      "echo *": "allow",
+      "gh issue view *": "allow",
+      "gh pr view *": "allow",
+      "gh pr list *": "allow",
+      "gh issue list *": "allow",
+      "git push *": "allow",
+      "gh pr create *": "allow",
+      "git checkout *": "allow",
+      "git worktree *": "allow",
+
+      "git remote *": "ask",
+      "gh pr merge *": "ask",
+      "gh pr close *": "ask",
+      "gh issue create *": "ask",
+      "gh issue close *": "ask",
+      "gh issue edit *": "ask",
+      "rm *": "ask",
+      "rmdir *": "ask",
+      "curl *": "ask",
+      "wget *": "ask",
+      "ssh *": "ask",
+      "scp *": "ask",
+      "rsync *": "ask",
+      "git reset *": "ask",
+      "git rebase *": "ask",
+      "git clean *": "ask",
+      "git stash *": "ask",
+      "git branch -d *": "ask",
+      "git branch -D *": "ask",
+
+      "gh repo *": "deny",
+      "chmod *": "deny",
+      "chown *": "deny",
+      "sudo *": "deny"
+    },
+    "skill": "allow"
+  },
+  "share": "disabled"
+}
