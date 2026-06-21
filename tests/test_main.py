@@ -3,7 +3,7 @@ import tempfile
 
 import pandas as pd
 
-from slm_bias_testing.benchmark import (
+from slm_bias_testing.cv_screening import (
     SCORE_PATTERN,
     load_existing_records,
     save_records,
