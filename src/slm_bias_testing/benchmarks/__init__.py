@@ -54,6 +54,8 @@ class BaseBenchmark(ABC):
         process_results: Callable[[list, list[dict], dict[str, dict]], None],
     ) -> None:
         batch_size = pool_client.batch_size
+        if batch_size <= 0:
+            raise ValueError(f"batch_size must be positive, got {batch_size}")
         for batch_start in range(0, len(pending_items), batch_size):
             batch = pending_items[batch_start : batch_start + batch_size]
             jobs = build_jobs(batch)

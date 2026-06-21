@@ -91,6 +91,20 @@ def _pool_batch(jobs: list[dict], pool_size: int, no_restart: bool = False) -> l
     t = threading.Thread(target=drain, daemon=True)
     t.start()
 
+    # Read and validate handshake (first line from pool)
+    handshake_line = stdout.readline()
+    if not handshake_line:
+        proc.terminate()
+        raise RuntimeError("Pool closed before sending handshake")
+    try:
+        handshake = json.loads(handshake_line)
+        if not isinstance(handshake, dict) or handshake.get("protocol") != 1 or not handshake.get("ready"):
+            proc.terminate()
+            raise RuntimeError(f"Pool sent unexpected handshake: {handshake}")
+    except json.JSONDecodeError:
+        proc.terminate()
+        raise RuntimeError(f"Pool sent invalid handshake: {handshake_line!r}")
+
     for job in jobs:
         stdin.write(json.dumps(job) + "\n")
     stdin.flush()

@@ -133,15 +133,15 @@ class OllamaPoolClient:
         # Read exactly len(jobs) results from stdout with a batch-level timeout
         results: dict[str, dict] = {}
         expected_ids = {job["id"] for job in full_jobs}
-        if self.batch_timeout > 0 and threading.current_thread() is not threading.main_thread():
-            raise RuntimeError(
-                "predict_batch with batch_timeout>0 requires the main thread "
-                "(signal.SIGALRM is thread-hostile). "
-                "Call from main thread or set batch_timeout=0 to disable."
-            )
-        old_alarm = signal.alarm(0)  # Save and disarm any existing alarm
-        signal.signal(signal.SIGALRM, self._batch_timeout_handler)
-        signal.alarm(self.batch_timeout)
+        if self.batch_timeout > 0:
+            if threading.current_thread() is not threading.main_thread():
+                raise RuntimeError(
+                    "predict_batch with batch_timeout>0 requires the main thread "
+                    "(signal.SIGALRM is thread-hostile). "
+                    "Call from main thread or set batch_timeout=0 to disable."
+                )
+            old_handler = signal.signal(signal.SIGALRM, self._batch_timeout_handler)
+            old_alarm = signal.alarm(self.batch_timeout)
         try:
             with self._read_lock:
                 for _ in range(len(full_jobs)):
@@ -167,7 +167,9 @@ class OllamaPoolClient:
             )
             raise
         finally:
-            signal.alarm(old_alarm)  # Restore previous alarm
+            if self.batch_timeout > 0:
+                signal.alarm(old_alarm)
+                signal.signal(signal.SIGALRM, old_handler)
 
         missing = expected_ids - results.keys()
         if missing:
