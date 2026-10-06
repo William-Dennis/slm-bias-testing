@@ -3,7 +3,7 @@ results/
 records.csv
 
 # Generated figures
-figs/
+# figs/ is committed — it holds the README result charts
 plots/
 
 # IDE
