@@ -1,4 +1,4 @@
-from examples.cvs import cvs
+from slm_bias_testing.data.cvs import cvs
 
 
 class TestCVs:

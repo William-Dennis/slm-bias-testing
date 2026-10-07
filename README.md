@@ -176,11 +176,14 @@ src/slm_bias_testing/
     stereoset.py         — StereoSet benchmark
     winobias.py          — WinoBias gender coreference benchmark
     demographic_bias.py  — Output length disparity benchmark
+  data/
+    cvs.py               — 600-CV factorial corpus (gender × ethnicity × prestige × quality × template)
+    cv_template.py       — CV text templates
+    job_description.py   — Fixed Junior Data Analyst JD
 
 scripts/
   run_experiments.py  — Batch runner (kill-safe, skips completed)
 
-examples/             — CV data, job description, templates
 tests/                — 114 tests
 ```
 
