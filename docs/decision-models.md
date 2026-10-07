@@ -137,6 +137,90 @@ loud on context overflow, and the determinism removes a whole class of
 variance — at the honest cost of a different score semantics that must stay
 visible in provenance.
 
+## Instrument v2: 500-token budget, step-10 scoring (scored sweep)
+
+A second, **deliberately separate** instrument lives in
+`src/slm_bias_testing/decision_instrument.py` — it does not touch or reuse
+the generative prompt builders (`build_base_prompt`/`cv_prompt`), the full
+JD, or the CV templates; only the CV corpus is shared.
+
+| piece | v2 choice |
+|---|---|
+| state | `Screening for: {JD_STUB}` + byte-identical CV — generative XX/100 boilerplate dropped |
+| JD | fresh ~30-token requirements stub (`JD_STUB`); the 295-word JD does not fit any 500-token budget (it alone costs 425–461 tokens) |
+| question | one `score` question, 11 levels `0,10,...,100` (laya allows 2–26), terse instructions; `advance` noul dropped |
+| budget | `BUDGET_TOKENS = 500`, recorded per record as `budget_ok` |
+| outputs | `score_discrete` (argmax x 10), `score_continuous` (probability-weighted x 10), all 11 probabilities, `confidence` |
+
+Run: `uv run python scripts/benchmark_decision_model.py --score-sweep
+--json docs/data/decision-sweep-2026-10-07.json` — 600 CVs x 3 tags,
+**12–20 s per tag** (model loaded once per tag).
+
+### Fit: exactly 480/600 on every tag, for a structural reason
+
+State length is **bimodal by CV template** (English/typed tokenizer):
+templates a–d use 355–438 tokens, template_e uses 518–526.
+
+| tag | scored | ctx errors | <=500 budget | max state | wall |
+|---|---|---|---|---|---|
+| `laya` (512 ctx) | **480/600** | 120 (all template_e) | 480 | 526 | 15.8 s |
+| `322m-multilingual` (1024) | **600/600** | 0 | 480 | 586 (mmBERT counts ~15% higher) | 12.3 s |
+| `421m-typed-decisions` (1024) | **600/600** | 0 | 480 | 526 | 20.3 s |
+
+- The 500-token budget holds for **4 of 5 templates on every tag**;
+  template_e's long layout costs 518–586 tokens and cannot fit 500 with a
+  byte-identical CV on any tokenizer. Strictly-≤500 for all 600 is not
+  achievable without truncating CVs (rejected: content is the measured
+  variable).
+- English's 512 window loses template_e regardless of stub size — even the
+  longest CV alone (~454 tokens) exceeds its 439-token limit for this
+  question. template_b sits **1 token** under that limit (max 438).
+- mmBERT (multilingual) tokenizes the same text ~8–15% higher; its
+  template_e states reach 586, still far below its ~890 limit.
+
+### Scores: continuous carries the signal, argmax is noise
+
+| tag | score_continuous mean +/- sd (range) | confidence (mean) | top-bin prob (mean; uniform = 0.091) |
+|---|---|---|---|
+| `laya` (n=480) | **52.5 +/- 3.9** (44.7-58.3) | 0.034 | 0.162 |
+| `322m-multilingual` (n=600) | **40.3 +/- 8.0** (21.2-47.3) | 0.110 | 0.266 |
+| `421m-typed-decisions` (n=600) | **56.7 +/- 4.5** (47.1-60.8) | 0.038 | 0.164 |
+
+Three findings that shape everything downstream:
+
+1. **The probability distributions are near-uniform** (top bin only
+   0.16 vs 0.091 uniform; `confidence` 0.03-0.11). CV screening is far
+   from laya's email/routing training distribution — the model is honest
+   about being unsure (calibration working as designed).
+   Consequently **`score_discrete` (argmax) is effectively noise**: e.g.
+   `laya` assigns 335/480 CVs to level 100 while its weighted mean is 52.
+   **Headline number = `score_continuous`**; `score_discrete` stays in the
+   records for provenance but must not be reported as "the score".
+2. **Checkpoints offset each other but agree on ordering**: pairwise
+   Pearson r on `score_continuous` = **0.90-0.96** across all three tags,
+   while means differ by up to **16 points** (multilingual runs ~14-16
+   lower than typed-decisions). Pin one tag per comparison; never mix.
+3. **First-look factor separation (typed-decisions):** demographic factors
+   show **no visible effect** (gender 56.6-56.7, ethnicity 56.4-56.7,
+   prestige 56.6-56.7, A-levels 56.6-56.7 — all deltas <= 0.3 points),
+   while **template dominates** (46.3-60.0 across tags, e.g. template_d
+   ~8-12 points below the rest). The instrument clearly reads content;
+   whether demographic insensitivity is real or a sensitivity limit of a
+   near-uniform head is the first question for the PR I analysis.
+
+### Limitations of v2 (honest list)
+
+- Out-of-domain task for the checkpoint family (triage/routing -> CVs);
+  near-uniform probabilities are the visible symptom.
+- Numeric level labels (`"0"..."100"`) may contribute to the flat
+  distributions; descriptive criteria (e.g. reject..top-candidate) would
+  trade away literal step-10 labels — worth an A/B in PR I.
+- English tag is partial (480/600, template_e only); budget strict on
+  480/600.
+- The state uses a stub JD, so v2 numbers are **not comparable** to the
+  generative instrument's full-JD scores either — different instrument,
+  recorded as `instrument: decision-v2` in the sweep JSON.
+
 ## Reproducing the spike
 
 ```bash
@@ -144,6 +228,8 @@ visible in provenance.
 ollama pull laya && ollama pull laya:322m-multilingual-mlx-fp16
 ollama pull laya:421m-typed-decisions-mlx-fp16
 uv run python scripts/benchmark_decision_model.py --n 50 --threads 4 --json /tmp/spike.json
+# scored 600-CV sweep with the v2 instrument (see section above):
+uv run python scripts/benchmark_decision_model.py --score-sweep --json /tmp/sweep.json
 ```
 
 Model API references: Ollama blog (2026-09-29) *Ollama now supports
