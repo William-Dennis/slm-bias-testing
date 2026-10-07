@@ -14,7 +14,6 @@ import logging
 import os
 import sys
 from datetime import datetime
-from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -95,7 +94,7 @@ def merge_registry(records: list[dict]) -> pd.DataFrame:
         name = r["model"]
         if name not in MODELS:
             continue
-        cfg: dict[str, Any] = MODELS[name]
+        cfg = MODELS[name]
         release_date: str = str(cfg["release_date"])
         try:
             release = datetime.strptime(release_date, "%Y-%m-%d")

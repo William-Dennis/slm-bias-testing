@@ -46,6 +46,7 @@ from slm_bias_testing.analysis import (
     variance_breakdown,
 )
 from slm_bias_testing.call_api import DEFAULT_KEEP_ALIVE, DEFAULT_NUM_CTX, Model
+from slm_bias_testing.io import atomic_write_json, atomic_write_text
 
 logger = logging.getLogger(__name__)
 
@@ -143,9 +144,7 @@ def load_existing_records(filepath: str = "records.csv") -> pd.DataFrame:
 
 
 def save_records(df: pd.DataFrame, filepath: str = "records.csv") -> None:
-    tmp = filepath + ".tmp"
-    df.to_csv(tmp)
-    os.replace(tmp, filepath)
+    atomic_write_text(filepath, df.to_csv())
 
 
 def _checkpoint_path(output_dir: str) -> str:
@@ -180,11 +179,7 @@ def _load_checkpoint(output_dir: str) -> set[tuple[str, int]]:
 
 def _write_json(path: str, payload: dict[str, Any]) -> None:
     """Atomically write JSON so a crash never leaves a truncated file."""
-    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-    tmp = path + ".tmp"
-    with open(tmp, "w") as f:
-        json.dump(payload, f, indent=2)
-    os.replace(tmp, path)
+    atomic_write_json(path, payload)
 
 
 def build_base_prompt(job_desc: str) -> str:

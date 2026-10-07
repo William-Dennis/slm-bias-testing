@@ -108,15 +108,15 @@ def load_all_results(base_dir: str = "results") -> pd.DataFrame:
             if data is None:
                 continue
             score = _extract_score(data, benchmark)
-            meta = MODELS.get(model_dir, {})
+            meta = MODELS.get(model_dir)
             rows.append(
                 {
                     "model": model_dir,
                     "benchmark": benchmark,
                     "score": score,
-                    "params": meta.get("params"),
-                    "family": meta.get("family", "unknown"),
-                    "release_date": meta.get("release_date", ""),
+                    "params": meta["params"] if meta else None,
+                    "family": meta["family"] if meta else "unknown",
+                    "release_date": meta["release_date"] if meta else "",
                     "n_examples": data.get("n_examples"),
                 }
             )

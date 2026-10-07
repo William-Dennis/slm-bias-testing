@@ -1,4 +1,27 @@
-MODELS = {
+"""Model registry — single source of truth for model metadata.
+
+Every model list in the codebase (runner, temporal analysis, tooling)
+derives from :data:`MODELS`; nothing keeps its own copy.
+"""
+
+from __future__ import annotations
+
+from types import MappingProxyType
+from typing import TYPE_CHECKING, TypedDict, cast
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+
+class ModelMeta(TypedDict):
+    ollama_tag: str
+    params: int
+    release_date: str  # "YYYY-MM"
+    family: str
+    architecture: str
+
+
+_MODELS: dict[str, ModelMeta] = {
     "smollm-135m": {
         "ollama_tag": "smollm:135m",
         "params": 135_000_000,
@@ -114,16 +137,17 @@ MODELS = {
 }
 
 
-def get_model(name: str) -> dict:
-    """Get model config by name. Raises KeyError if not found."""
-    return MODELS[name]
+#: Read-only view over the registry: neither the mapping nor any entry can
+#: be mutated. ``get_model()`` still hands out mutable copies.
+MODELS: Mapping[str, ModelMeta] = MappingProxyType(
+    {name: cast("ModelMeta", MappingProxyType(dict(meta))) for name, meta in _MODELS.items()}
+)
 
 
-def list_models() -> list[str]:
-    """List all registered model names."""
-    return list(MODELS.keys())
+def get_model(name: str) -> ModelMeta:
+    """Get a model's metadata as a copy. Raises KeyError if not found.
 
-
-def models_by_family(family: str) -> dict:
-    """Filter models by family."""
-    return {k: v for k, v in MODELS.items() if v["family"] == family}
+    The copy is intentional — mutating a returned config must never affect
+    other callers.
+    """
+    return MODELS[name].copy()

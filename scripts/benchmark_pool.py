@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import contextlib
 import json
+import os
 import subprocess
 import sys
 import threading
@@ -20,15 +21,14 @@ import time
 import urllib.request
 from pathlib import Path
 
-OLLAMA_HOST = "http://localhost:11434"
+from slm_bias_testing.ollama_setup import ollama_alive
+
+_host = os.environ.get("OLLAMA_HOST", "localhost:11434")
+OLLAMA_HOST = (_host if "://" in _host else f"http://{_host}").rstrip("/")
 
 
 def _check_ollama() -> bool:
-    try:
-        with urllib.request.urlopen(f"{OLLAMA_HOST}/api/tags", timeout=5):
-            return True
-    except Exception:
-        return False
+    return ollama_alive(timeout=5)
 
 
 def _ollama_chat(prompt: str, model: str) -> float:
@@ -98,12 +98,16 @@ def _pool_batch(jobs: list[dict], pool_size: int, no_restart: bool = False) -> l
         raise RuntimeError("Pool closed before sending handshake")
     try:
         handshake = json.loads(handshake_line)
-        if not isinstance(handshake, dict) or handshake.get("protocol") != 1 or not handshake.get("ready"):
+        if (
+            not isinstance(handshake, dict)
+            or handshake.get("protocol") != 1
+            or not handshake.get("ready")
+        ):
             proc.terminate()
             raise RuntimeError(f"Pool sent unexpected handshake: {handshake}")
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as err:
         proc.terminate()
-        raise RuntimeError(f"Pool sent invalid handshake: {handshake_line!r}")
+        raise RuntimeError(f"Pool sent invalid handshake: {handshake_line!r}") from err
 
     for job in jobs:
         stdin.write(json.dumps(job) + "\n")

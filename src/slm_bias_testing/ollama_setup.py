@@ -12,6 +12,23 @@ import urllib.request
 logger = logging.getLogger(__name__)
 
 
+def ollama_alive(timeout: float = 2.0) -> bool:
+    """True when a local Ollama server answers ``/api/tags``.
+
+    The single Python-side liveness probe — callers (client recovery,
+    server wait loops, scripts) must use this instead of re-implementing
+    the HTTP check. The Node.js pool keeps its own probe (separate process,
+    no Python import possible).
+    """
+    host = os.environ.get("OLLAMA_HOST", "localhost:11434")
+    base = host if "://" in host else f"http://{host}"
+    try:
+        with urllib.request.urlopen(f"{base.rstrip('/')}/api/tags", timeout=timeout):
+            return True
+    except (urllib.error.URLError, OSError):
+        return False
+
+
 class OllamaServer:
     def __init__(self, kill_existing: bool = True):
         self.process: subprocess.Popen[bytes] | None = None
@@ -55,15 +72,12 @@ class OllamaServer:
         atexit.register(self.stop)
 
     def _wait_for_server(self, timeout: int = 30, interval: int = 1) -> None:
-        url = f"http://{os.environ.get('OLLAMA_HOST', 'localhost:11434')}/api/tags"
         start_time = time.time()
         while time.time() - start_time < timeout:
-            try:
-                with urllib.request.urlopen(url, timeout=2):
-                    logger.info("Ollama server is ready")
-                    return
-            except (urllib.error.URLError, OSError):
-                time.sleep(interval)
+            if ollama_alive(timeout=2):
+                logger.info("Ollama server is ready")
+                return
+            time.sleep(interval)
         # Timeout — kill the process
         if self.process:
             try:
