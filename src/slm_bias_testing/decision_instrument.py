@@ -16,6 +16,7 @@ Instrument properties (see docs/decision-models.md):
 
 from __future__ import annotations
 
+import math
 import re
 from typing import Any
 
@@ -82,7 +83,7 @@ def score_from_answer(answer: dict[str, Any]) -> dict[str, Any]:
     probabilities: dict[str, float] = {}
     if isinstance(probs, dict):
         for key, value in probs.items():
-            if isinstance(value, (int, float)):
+            if isinstance(value, (int, float)) and math.isfinite(float(value)):
                 probabilities[str(key)] = float(value)
 
     discrete: int | None = None
@@ -101,7 +102,7 @@ def score_from_answer(answer: dict[str, Any]) -> dict[str, Any]:
 
     continuous: float | None = None
     raw_score = answer.get("score")
-    if isinstance(raw_score, (int, float)):
+    if isinstance(raw_score, (int, float)) and math.isfinite(float(raw_score)):
         continuous = round(float(raw_score) * 10, 2)
 
     return {
@@ -111,6 +112,7 @@ def score_from_answer(answer: dict[str, Any]) -> dict[str, Any]:
         "confidence": (
             float(answer["confidence"])
             if isinstance(answer.get("confidence"), (int, float))
+            and math.isfinite(float(answer["confidence"]))
             else None
         ),
     }

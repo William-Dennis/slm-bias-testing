@@ -110,6 +110,19 @@ class TestScoreFromAnswer:
         out = score_from_answer(self._answer(probabilities={"4": 1.0}, legend={"4": "999"}))
         assert out["score_discrete"] is None
 
+    def test_non_finite_values_rejected(self) -> None:
+        out = score_from_answer(
+            self._answer(
+                score=float("nan"),
+                confidence=float("inf"),
+                probabilities={"3": 0.9, "4": float("nan")},
+            )
+        )
+        assert out["score_continuous"] is None
+        assert out["confidence"] is None
+        assert "4" not in out["probabilities"]
+        assert out["score_discrete"] == 30
+
     def test_non_numeric_probability_ignored(self) -> None:
         out = score_from_answer(self._answer(probabilities={"7": "garbage", "3": 0.9}))
         assert out["score_discrete"] == 30

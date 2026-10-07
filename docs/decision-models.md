@@ -190,8 +190,11 @@ Three findings that shape everything downstream:
 
 1. **The probability distributions are near-uniform** (top bin only
    0.16 vs 0.091 uniform; `confidence` 0.03-0.11). CV screening is far
-   from laya's email/routing training distribution — the model is honest
-   about being unsure (calibration working as designed).
+   from laya's email/routing training distribution — the model is telling
+   us it is unsure. (`confidence` here is normalised entropy over the level
+   probabilities - a dispersion measure, **not** evidence that the
+   probabilities are calibrated; shipped checkpoints are documented as
+   unvalidated for calibration.)
    Consequently **`score_discrete` (argmax) is effectively noise**: e.g.
    `laya` assigns 335/480 CVs to level 100 while its weighted mean is 52.
    **Headline number = `score_continuous`**; `score_discrete` stays in the

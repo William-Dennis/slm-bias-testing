@@ -155,11 +155,15 @@ def run_throughput(
     }
 
 
-def measure_question_overhead(model: str, *, host: str, timeout: float) -> int:
-    """Question-only token overhead for this tag (state = 1 token "x")."""
+def measure_question_overhead(model: str, *, host: str, timeout: float) -> int | None:
+    """Question-only token overhead for this tag (state = 1 token "x").
+
+    ``None`` when the probe fails - callers must not guess an overhead of 0,
+    which would over-count every ``state_tokens`` value.
+    """
     _, payload = post_systemone(model, "x", score_question(), host=host, timeout=timeout)
     used = payload.get("usage", {}).get("input_tokens") if "error" not in payload else None
-    return max(0, int(used) - 1) if isinstance(used, int) else 0
+    return max(0, int(used) - 1) if isinstance(used, int) else None
 
 
 def score_sweep_model(
@@ -178,7 +182,7 @@ def score_sweep_model(
     overhead = measure_question_overhead(model, host=host, timeout=timeout)
     question = score_question()
     records: list[dict[str, Any]] = []
-    n_ok = n_ctx_errors = n_budget = 0
+    n_ok = n_ctx_errors = n_request_errors = n_unscored = n_budget = 0
     started = time.perf_counter()
     for index, cv in enumerate(cv_list):
         meta = cv.get("metadata", {})
@@ -200,7 +204,9 @@ def score_sweep_model(
             record.update(
                 {
                     "state_tokens": state_tokens,
-                    "budget_ok": state_tokens is not None and state_tokens <= BUDGET_TOKENS,
+                    "budget_ok": (
+                        state_tokens <= BUDGET_TOKENS if state_tokens is not None else None
+                    ),
                     "ctx_ok": False,
                     "score_discrete": None,
                     "score_continuous": None,
@@ -209,21 +215,31 @@ def score_sweep_model(
                     "error": message,
                 }
             )
-            n_ctx_errors += 1
+            if state_tokens is not None:
+                n_ctx_errors += 1
+            else:
+                n_request_errors += 1
         else:
             used = payload.get("usage", {}).get("input_tokens")
-            state_tokens = int(used) - overhead if isinstance(used, int) else None
+            state_tokens = (
+                int(used) - overhead if isinstance(used, int) and overhead is not None else None
+            )
             answer = payload.get("answers", {}).get("score", {})
             record.update(
                 {
                     "state_tokens": state_tokens,
-                    "budget_ok": state_tokens is not None and state_tokens <= BUDGET_TOKENS,
+                    "budget_ok": (
+                        state_tokens <= BUDGET_TOKENS if state_tokens is not None else None
+                    ),
                     "ctx_ok": True,
                     **score_from_answer(answer if isinstance(answer, dict) else {}),
                     "error": None,
                 }
             )
-            n_ok += 1
+            if record["score_continuous"] is not None:
+                n_ok += 1
+            else:
+                n_unscored += 1
         if record["budget_ok"]:
             n_budget += 1
         records.append(record)
@@ -239,6 +255,8 @@ def score_sweep_model(
         "n_total": len(cv_list),
         "n_ok": n_ok,
         "n_ctx_errors": n_ctx_errors,
+        "n_request_errors": n_request_errors,
+        "n_unscored": n_unscored,
         "n_budget_ok": n_budget,
         "max_state_tokens": max(state_counts) if state_counts else None,
         "wall_s": round(wall, 1),
@@ -399,8 +417,8 @@ def print_table(results: list[dict[str, Any]]) -> None:
 
 def print_sweep_summary(results: list[dict[str, Any]]) -> None:
     hdr = (
-        f"{'model':<40} {'ok':>5} {'ctx_err':>7} {'<=500':>6} {'max_state':>9} "
-        f"{'disc_mean':>9} {'cont_mean':>9} {'wall':>7}"
+        f"{'model':<40} {'ok':>5} {'ctx_err':>7} {'other':>5} {'noscore':>7} "
+        f"{'<=500':>6} {'max_state':>9} {'cont_mean':>9} {'wall':>7}"
     )
     print("\n" + hdr)
     print("-" * len(hdr))
@@ -408,9 +426,9 @@ def print_sweep_summary(results: list[dict[str, Any]]) -> None:
         max_state = r["max_state_tokens"]
         print(
             f"{r['model']:<40} {r['n_ok']:>5} {r['n_ctx_errors']:>7} "
+            f"{r['n_request_errors']:>5} {r['n_unscored']:>7} "
             f"{r['n_budget_ok']:>6} {max_state!s:>9} "
-            f"{r['score_discrete_mean']!s:>9} {r['score_continuous_mean']!s:>9} "
-            f"{r['wall_s']:>6.1f}s"
+            f"{r['score_continuous_mean']!s:>9} {r['wall_s']:>6.1f}s"
         )
 
 
