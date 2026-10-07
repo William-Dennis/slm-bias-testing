@@ -18,6 +18,7 @@ Outputs (in ``output_dir``):
 from __future__ import annotations
 
 import hashlib
+import importlib.metadata
 import json
 import logging
 import os
@@ -359,12 +360,18 @@ def build_results(
         }
 
     _, cv_summary = per_cv_variance(df)
-    std = df["score"].std()
+    if df.empty or "score" not in df.columns:
+        mean_score: float | None = None
+        std_score: float | None = None
+    else:
+        mean_score = float(df["score"].mean())
+        std = df["score"].std()
+        std_score = None if pd.isna(std) else float(std)
     return {
         "benchmark": "cv-screening",
         "n_examples": len(df),
-        "mean_score": float(df["score"].mean()),
-        "std_score": None if pd.isna(std) else float(std),
+        "mean_score": mean_score,
+        "std_score": std_score,
         "attrition": attrition,
         "provenance": provenance,
         "groups": groups,
@@ -437,7 +444,6 @@ def run_benchmark(
 
     base_prompt = build_base_prompt(job_desc)
     prompt_sha256 = sha256_hash(base_prompt)
-    n_planned = len(cv_data) * n_runs
 
     def default_factory(**kwargs: Any) -> Any:
         return Model(model_name=model_name, **kwargs)
@@ -523,28 +529,31 @@ def run_benchmark(
         if os.path.exists(checkpoint):
             os.remove(checkpoint)
 
-    if existing_df.empty:
-        return pd.DataFrame(records)
-
-    # Always regenerate analysis artefacts, including on fully-resumed runs.
-    variables = [c for c in ALL_PLOT_VARIABLES if c in existing_df.columns]
-    plot_and_save_boxplots(existing_df, variables, output_dir=plots_dir)
-
-    summary = build_summary_table(existing_df, variables)
-    logger.info("\n%s", summary)
-    with open(os.path.join(output_dir, "analysis_summary.txt"), "w") as f:
-        f.write(summary)
-
-    n_scored = len(existing_df)
-    attrition = {
-        "n_planned": int(n_planned),
-        "n_scored": n_scored,
-        "n_outstanding": int(max(0, n_planned - n_scored)),
-        "n_parse_failures": int(n_parse_failures),
-        "n_api_errors": int(n_api_errors),
+    # Attrition is scoped to the planned (cv, run) keys of this invocation so a
+    # resumed run never compares a cumulative record count with a partial plan.
+    planned_keys = {
+        (sha256_hash(cv_prompt(base_prompt, cv)), run) for cv in cv_data for run in range(n_runs)
     }
+    scored_keys = (
+        set(zip(existing_df["key"], existing_df["run"], strict=True))
+        if not existing_df.empty and {"key", "run"} <= set(existing_df.columns)
+        else set()
+    )
+    attrition = {
+        "n_planned": len(planned_keys),
+        "n_scored": len(planned_keys & scored_keys),
+        "n_outstanding": len(planned_keys - scored_keys),
+        "n_parse_failures_this_invocation": int(n_parse_failures),
+        "n_api_errors_this_invocation": int(n_api_errors),
+        "n_records_total": len(existing_df),
+    }
+    try:
+        package_version: str | None = importlib.metadata.version("slm-bias-testing")
+    except importlib.metadata.PackageNotFoundError:
+        package_version = None
     provenance = {
         "model": model_name,
+        "package_version": package_version,
         "n_runs": int(n_runs),
         "max_samples": int(max_samples) if max_samples is not None else None,
         "temperature": float(temperature),
@@ -555,5 +564,19 @@ def run_benchmark(
     }
     results = build_results(existing_df, provenance=provenance, attrition=attrition)
     _write_json(os.path.join(output_dir, "cv-screening.json"), results)
+
+    if existing_df.empty:
+        # Fully failed run with no history: payload above is still written so
+        # provenance and attrition are auditable; there is nothing to plot.
+        return existing_df
+
+    # Always regenerate analysis artefacts, including on fully-resumed runs.
+    variables = [c for c in ALL_PLOT_VARIABLES if c in existing_df.columns]
+    plot_and_save_boxplots(existing_df, variables, output_dir=plots_dir)
+
+    summary = build_summary_table(existing_df, variables)
+    logger.info("\n%s", summary)
+    with open(os.path.join(output_dir, "analysis_summary.txt"), "w") as f:
+        f.write(summary)
 
     return existing_df

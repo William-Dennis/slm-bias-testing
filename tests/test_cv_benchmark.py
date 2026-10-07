@@ -224,11 +224,13 @@ class TestRunBenchmark:
         assert attrition["n_planned"] == 64
         assert attrition["n_scored"] == 64
         assert attrition["n_outstanding"] == 0
-        assert attrition["n_parse_failures"] == 0
-        assert attrition["n_api_errors"] == 0
+        assert attrition["n_parse_failures_this_invocation"] == 0
+        assert attrition["n_api_errors_this_invocation"] == 0
+        assert attrition["n_records_total"] == 64
 
         provenance = payload["provenance"]
         assert provenance["model"] == "mock-model"
+        assert provenance["package_version"] is not None
         assert provenance["n_runs"] == 2
         assert provenance["temperature"] == 1.0
         assert len(provenance["prompt_sha256"]) == 64
@@ -266,7 +268,8 @@ class TestRunBenchmark:
         assert payload["attrition"]["n_planned"] == 32
         assert payload["attrition"]["n_scored"] == 31
         assert payload["attrition"]["n_outstanding"] == 1
-        assert payload["attrition"]["n_parse_failures"] == 1
+        assert payload["attrition"]["n_parse_failures_this_invocation"] == 1
+        assert payload["attrition"]["n_records_total"] == 31
 
     def test_all_failures_yields_empty_run(self, tmp_path, small_cvs, factory):
         df, _ = self._run(
@@ -278,4 +281,17 @@ class TestRunBenchmark:
         )
         assert df.empty
         assert not (tmp_path / "records.csv").exists()
-        assert not (tmp_path / "cv-screening.json").exists()
+
+        payload = json.loads((tmp_path / "cv-screening.json").read_text())
+        assert payload["n_examples"] == 0
+        assert payload["mean_score"] is None
+        assert payload["groups"] == {}
+        assert payload["attrition"] == {
+            "n_planned": 32,
+            "n_scored": 0,
+            "n_outstanding": 32,
+            "n_parse_failures_this_invocation": 32,
+            "n_api_errors_this_invocation": 0,
+            "n_records_total": 0,
+        }
+        assert payload["provenance"]["prompt_sha256"]
