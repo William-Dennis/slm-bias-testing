@@ -29,10 +29,15 @@ demographic bias (CV screening, StereoSet, WinoBias, demographic completion).
 src/slm_bias_testing/
 ├── analysis.py          # Statistical analysis (Cohen's d, variance breakdown)
 ├── benchmark_runner.py  # Core runner with pool lifecycle, model iteration
-├── cv_screening.py      # CV screening benchmark (batched via pool)
+├── call_api.py          # Sequential Model.predict client (pool fallback)
+├── cv_screening.py      # CV screening benchmark (pooled or sequential)
+├── io.py                # Atomic write helpers
 ├── model_clients.py     # OllamaPoolClient (Node.js pool subprocess)
-├── registry.py          # Model registry (name → metadata)
+├── ollama_setup.py      # Ollama server lifecycle + liveness probe
+├── registry.py          # Model registry (read-only, TypedDict metadata)
 ├── temporal.py          # Temporal bias trend analysis + plotting
+├── visualisations.py    # Result charts
+├── data/                # Packaged CV corpus, templates, job description
 └── benchmarks/
     ├── __init__.py      # BaseBenchmark ABC (pool_client param)
     ├── demographic_bias.py
@@ -41,7 +46,12 @@ src/slm_bias_testing/
 
 scripts/
 ├── run_benchmarks.py    # CLI entry point (one or all models, all benchmarks)
+├── benchmark_pool.py    # Pool throughput micro-benchmark
 └── ollama_pool.mjs      # Node.js worker pool for parallel Ollama calls
+
+docs/
+├── cv-screening-methodology.md  # Design, scoring, statistics, limitations
+└── ollama-pool-manager.md       # Pool design spec (implemented in #32)
 ```
 
 ## Key Patterns
