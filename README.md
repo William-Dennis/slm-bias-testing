@@ -222,7 +222,7 @@ ps eww $(pgrep -f "ollama serve" | head -1) | tr ' ' '\n' | grep OLLAMA
 
 Expected output:
 
-```
+```text
 OLLAMA_MODELS=...
 OLLAMA_NO_CLOUD=1
 OLLAMA_NUM_PARALLEL=4

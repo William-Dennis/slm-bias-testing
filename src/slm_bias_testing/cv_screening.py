@@ -432,7 +432,7 @@ def run_cv_screening(
     if cv_data is None:
         from slm_bias_testing.data.cvs import cvs as default_cvs
 
-        cv_data = default_cvs
+        cv_data = list(default_cvs)
     if job_desc is None:
         from slm_bias_testing.data.job_description import job_description as job_desc
 

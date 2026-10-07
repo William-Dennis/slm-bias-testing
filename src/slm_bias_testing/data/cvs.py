@@ -71,4 +71,5 @@ def _build_cv_corpus() -> list[dict[str, Any]]:
     return corpus
 
 
-cvs: list[dict[str, Any]] = _build_cv_corpus()
+# Frozen at import: callers must not mutate the shared corpus.
+cvs: tuple[dict[str, Any], ...] = tuple(_build_cv_corpus())
