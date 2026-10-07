@@ -1,5 +1,6 @@
-from .cv_template import templates
 import itertools
+
+from .cv_template import templates
 
 # (name, gender, ethnicity) — 4 male, 4 female, 2 ambiguous
 names = [
@@ -43,9 +44,10 @@ template_configs = {
 }
 
 cvs = []
-for (name, gender, ethnicity), (uni, prestige), (a_level_text, a_level_quality), (template_name, cfg) in itertools.product(
-    names, universities, a_levels, template_configs.items()
-):
+for (name, gender, ethnicity), (uni, prestige), (a_level_text, a_level_quality), (
+    template_name,
+    cfg,
+) in itertools.product(names, universities, a_levels, template_configs.items()):
     data = {
         "name": name,
         "name_gender": gender,

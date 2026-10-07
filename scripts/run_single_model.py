@@ -147,6 +147,9 @@ def run_benchmark(
             "n_records": len(df) if df is not None else 0,
             "mean_score": float(df["score"].mean()) if df is not None and not df.empty else None,
             "std_score": float(df["score"].std()) if df is not None and not df.empty else None,
+            "n_runs": n_runs,
+            "max_samples": max_samples,
+            "timestamp": datetime.now().isoformat(),
         }
     else:
         from slm_bias_testing.call_api import DEFAULT_NUM_CTX
