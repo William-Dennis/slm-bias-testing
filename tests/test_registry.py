@@ -29,6 +29,10 @@ class TestRegistryImmutability:
         with pytest.raises(TypeError):
             MODELS["new-model"] = get_model("smollm-135m")  # type: ignore[index]
 
+    def test_registry_entries_are_read_only(self):
+        with pytest.raises(TypeError):
+            MODELS["smollm-135m"]["params"] = -1  # type: ignore[index]
+
 
 VALID_ARCHS = {"decoder-only", "hybrid-conv-attn"}
 

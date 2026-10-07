@@ -7,7 +7,7 @@ derives from :data:`MODELS`; nothing keeps its own copy.
 from __future__ import annotations
 
 from types import MappingProxyType
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, TypedDict, cast
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -137,8 +137,11 @@ _MODELS: dict[str, ModelMeta] = {
 }
 
 
-#: Read-only view over the registry: callers cannot mutate shared state.
-MODELS: Mapping[str, ModelMeta] = MappingProxyType(_MODELS)
+#: Read-only view over the registry: neither the mapping nor any entry can
+#: be mutated. ``get_model()`` still hands out mutable copies.
+MODELS: Mapping[str, ModelMeta] = MappingProxyType(
+    {name: cast("ModelMeta", MappingProxyType(dict(meta))) for name, meta in _MODELS.items()}
+)
 
 
 def get_model(name: str) -> ModelMeta:

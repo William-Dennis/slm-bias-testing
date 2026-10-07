@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import contextlib
 import json
+import os
 import subprocess
 import sys
 import threading
@@ -22,7 +23,8 @@ from pathlib import Path
 
 from slm_bias_testing.ollama_setup import ollama_alive
 
-OLLAMA_HOST = "http://localhost:11434"
+_host = os.environ.get("OLLAMA_HOST", "localhost:11434")
+OLLAMA_HOST = (_host if "://" in _host else f"http://{_host}").rstrip("/")
 
 
 def _check_ollama() -> bool:

@@ -2,18 +2,30 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
+import tempfile
 from typing import Any
 
 
 def atomic_write_text(path: str, text: str) -> None:
-    """Write text to path atomically (tmp file + os.replace)."""
-    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-    tmp = path + ".tmp"
-    with open(tmp, "w") as f:
-        f.write(text)
-    os.replace(tmp, path)
+    """Write text to path atomically.
+
+    Uses a unique temporary sibling per call (safe when several writers
+    target the same path) and removes it if the write fails.
+    """
+    directory = os.path.dirname(path) or "."
+    os.makedirs(directory, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=directory, prefix=os.path.basename(path) + ".", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w") as f:
+            f.write(text)
+        os.replace(tmp, path)
+    except BaseException:
+        with contextlib.suppress(OSError):
+            os.unlink(tmp)
+        raise
 
 
 def atomic_write_json(path: str, payload: Any) -> None:
@@ -21,8 +33,4 @@ def atomic_write_json(path: str, payload: Any) -> None:
 
     A crash never leaves a truncated results file behind.
     """
-    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-    tmp = path + ".tmp"
-    with open(tmp, "w") as f:
-        json.dump(payload, f, indent=2)
-    os.replace(tmp, path)
+    atomic_write_text(path, json.dumps(payload, indent=2))
