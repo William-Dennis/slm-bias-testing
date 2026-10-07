@@ -31,8 +31,9 @@ This repo enforces an **issue → branch → PR → review → merge** model.
 5. Push and open a PR targeting `main`. Link the issue with `Closes #N`.
 6. All CI checks must pass (Lint, Type Check, Test 3.11, Test 3.12).
 7. No approving review required (solo repo) — but no admin bypass.
-8. All review threads must be resolved before merge.
-9. Squash merge. Branch auto-deleted after merge.
+   Self-review the diff before merge; there are no automated review
+   threads (CodeRabbit was removed).
+8. Squash merge. Branch auto-deleted after merge.
 
 ## Branch Protection (main)
 
