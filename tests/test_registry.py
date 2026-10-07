@@ -1,6 +1,6 @@
 import pytest
 
-from slm_bias_testing.registry import MODELS, get_model, list_models, models_by_family
+from slm_bias_testing.registry import MODELS, get_model
 
 
 class TestGetModel:
@@ -15,28 +15,19 @@ class TestGetModel:
             get_model("nonexistent-model")
 
 
-class TestListModels:
-    def test_list_models_returns_all(self):
-        models = list_models()
-        assert len(models) == len(MODELS)
-        assert "smollm-135m" in models
-        assert "gemma3-1b" in models
+class TestRegistryImmutability:
+    def test_get_model_returns_copy(self):
+        model = get_model("smollm-135m")
+        model["ollama_tag"] = "mutated:tag"
+        model["params"] = -1
+        fresh = get_model("smollm-135m")
+        assert fresh["ollama_tag"] == "smollm:135m"
+        assert fresh["params"] == 135_000_000
+        assert MODELS["smollm-135m"]["params"] == 135_000_000
 
-    def test_list_models_order(self):
-        models = list_models()
-        assert models == list(MODELS.keys())
-
-
-class TestModelsByFamily:
-    def test_filter_by_family(self):
-        hf = models_by_family("huggingface")
-        assert all(v["family"] == "huggingface" for v in hf.values())
-        assert "smollm-135m" in hf
-        assert "smollm2-360m" in hf
-
-    def test_filter_nonexistent_family(self):
-        result = models_by_family("nonexistent")
-        assert result == {}
+    def test_modes_is_read_only(self):
+        with pytest.raises(TypeError):
+            MODELS["new-model"] = get_model("smollm-135m")  # type: ignore[index]
 
 
 VALID_ARCHS = {"decoder-only", "hybrid-conv-attn"}

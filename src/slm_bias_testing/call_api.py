@@ -9,12 +9,9 @@ import time
 
 import ollama
 
-from slm_bias_testing.ollama_setup import OllamaServer
+from slm_bias_testing.ollama_setup import OllamaServer, ollama_alive
 
 logger = logging.getLogger(__name__)
-
-LLM_MODEL = "gemma3:1b-it-qat"
-PROVIDER = "ollama"
 
 # Default context window. Ollama 0.19+ uses MLX on Apple Silicon with intelligent
 # KV cache checkpoints — setting an explicit num_ctx lets Ollama optimise cache
@@ -35,10 +32,7 @@ class OllamaClient:
 
     def ensure_running(self) -> None:
         """Check if Ollama is responding; restart if not."""
-        try:
-            self._client.list()
-            return
-        except Exception:
+        if not ollama_alive():
             logger.warning("Ollama not responding, restarting...")
             if self._server is not None:
                 with contextlib.suppress(Exception):
@@ -63,14 +57,11 @@ class Model:
 
     def __init__(
         self,
-        model_name: str = LLM_MODEL,
-        provider: str = PROVIDER,
+        model_name: str,
         ollama_client: OllamaClient | None = None,
         num_ctx: int | None = None,
         keep_alive: float | None = None,
     ) -> None:
-        if provider != "ollama":
-            raise ValueError(f"Only 'ollama' provider supported, got '{provider}'")
         self.model_name = model_name
         self.num_ctx = num_ctx if num_ctx is not None else DEFAULT_NUM_CTX
         self.keep_alive = keep_alive if keep_alive is not None else DEFAULT_KEEP_ALIVE
@@ -81,6 +72,7 @@ class Model:
         """Run a single prediction via Ollama."""
         max_retries = 3
         start = time.monotonic()
+        last_error: Exception | None = None
         for attempt in range(max_retries):
             try:
                 response = self._ollama_client.client.chat(
@@ -96,18 +88,14 @@ class Model:
                 logger.debug("Ollama call completed in %.2fs (attempt %d)", elapsed, attempt + 1)
                 return response["message"]["content"]  # type: ignore[no-any-return]
             except Exception as e:
+                last_error = e
+                logger.warning(
+                    "Ollama call failed (attempt %d/%d): %s", attempt + 1, max_retries, e
+                )
+                # Only restart on actual connection failure, not on every error
+                if "connect" in str(e).lower() or "refused" in str(e).lower():
+                    self._ollama_client.ensure_running()
                 if attempt < max_retries - 1:
-                    logger.warning(
-                        "Ollama call failed (attempt %d/%d): %s", attempt + 1, max_retries, e
-                    )
-                    # Only restart on actual connection failure, not on every error
-                    if "connect" in str(e).lower() or "refused" in str(e).lower():
-                        self._ollama_client.ensure_running()
-                    sleep_time = min(2 ** (attempt + 1), 30)
-                    time.sleep(sleep_time)
-                else:
-                    logger.error(
-                        "Ollama call failed after %d attempts: %s", max_retries, e, exc_info=True
-                    )
-                    raise
-        raise RuntimeError("Unreachable")
+                    time.sleep(min(2 ** (attempt + 1), 30))
+        logger.error("Ollama call failed after %d attempts: %s", max_retries, last_error)
+        raise last_error if last_error is not None else RuntimeError("Ollama call failed")

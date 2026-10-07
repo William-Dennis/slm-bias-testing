@@ -11,6 +11,8 @@ if TYPE_CHECKING:
 
     from slm_bias_testing.model_clients import PoolClientProtocol
 
+from slm_bias_testing.io import atomic_write_json
+
 logger = logging.getLogger(__name__)
 
 
@@ -78,10 +80,7 @@ class BaseBenchmark(ABC):
         try:
             os.makedirs(output_dir, exist_ok=True)
             results_file = os.path.join(output_dir, f"{self.name}.json")
-            tmp_file = results_file + ".tmp"
-            with open(tmp_file, "w") as f:
-                json.dump(results, f, indent=2)
-            os.replace(tmp_file, results_file)
+            atomic_write_json(results_file, results)
             ckpt = self._checkpoint_path(output_dir)
             if os.path.exists(ckpt):
                 os.remove(ckpt)

@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import argparse
-import json
 import logging
 import os
 import subprocess
 from datetime import datetime
 from typing import TYPE_CHECKING
 
+from slm_bias_testing.io import atomic_write_json
 from slm_bias_testing.registry import MODELS, get_model
 
 if TYPE_CHECKING:
@@ -53,7 +53,7 @@ def run_model_benchmarks(
     max_samples: int | None = None,
     pool_size: int = 4,
     batch_size: int = 40,
-    n_runs: int = 3,
+    n_runs: int = 10,
     adaptive: bool = True,
 ) -> None:
     """Run benchmark(s) for a single model with resume support."""
@@ -189,10 +189,7 @@ def _build_benchmark_summary(
 
 
 def _write_summary(results_file: str, summary: dict) -> None:
-    tmp_path = results_file + ".tmp"
-    with open(tmp_path, "w") as f:
-        json.dump(summary, f, indent=2)
-    os.replace(tmp_path, results_file)
+    atomic_write_json(results_file, summary)
 
 
 def main() -> None:
@@ -227,8 +224,8 @@ def main() -> None:
     parser.add_argument(
         "--n-runs",
         type=int,
-        default=3,
-        help="Number of repeated runs per CV in cv-screening (default: 3)",
+        default=10,
+        help="Number of repeated runs per CV in cv-screening (default: 10)",
     )
     group = parser.add_mutually_exclusive_group()
     group.add_argument(
