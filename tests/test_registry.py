@@ -27,11 +27,11 @@ class TestRegistryImmutability:
 
     def test_modes_is_read_only(self):
         with pytest.raises(TypeError):
-            MODELS["new-model"] = get_model("smollm-135m")  # type: ignore[index]
+            MODELS["new-model"] = get_model("smollm-135m")  # ty: ignore[invalid-assignment]
 
     def test_registry_entries_are_read_only(self):
         with pytest.raises(TypeError):
-            MODELS["smollm-135m"]["params"] = -1  # type: ignore[index]
+            MODELS["smollm-135m"]["params"] = -1
 
 
 VALID_ARCHS = {"decoder-only", "hybrid-conv-attn"}

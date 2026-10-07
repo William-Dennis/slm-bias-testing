@@ -60,8 +60,9 @@ scripts/
 ## CI Pipeline
 
 `.github/workflows/ci.yml` runs on push to main and all PRs:
-- Lint: `ruff check` + `ruff format --check`
-- Type Check: `ty check`
+- Lint: `ruff check` + `ruff format --check` on `src tests scripts`, plus
+  `node --check scripts/ollama_pool.mjs`
+- Type Check: `ty check` (tests included — the documented command must pass)
 - Test: `pytest` on Python 3.11 + 3.12 matrix
 
 Branch protection requires all 4 checks to pass with strict mode (branch must be up-to-date with main).
