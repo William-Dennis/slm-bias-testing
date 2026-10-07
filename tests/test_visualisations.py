@@ -283,7 +283,7 @@ class TestLoadPerPronounData:
 
 class TestPlotHeatmap:
     def test_empty_dataframe_returns_empty_string(self, tmp_path):
-        df = pd.DataFrame(columns=["model", "benchmark", "score"])
+        df = pd.DataFrame(columns=pd.Index(["model", "benchmark", "score"]))
         path = plot_heatmap(df, str(tmp_path))
         assert path == ""
 
@@ -303,7 +303,7 @@ class TestPlotHeatmap:
 
 class TestPlotStereoSetCategories:
     def test_empty_dataframe_returns_empty_string(self, tmp_path):
-        df = pd.DataFrame(columns=["model", "category", "score"])
+        df = pd.DataFrame(columns=pd.Index(["model", "category", "score"]))
         path = plot_stereoset_categories(df, str(tmp_path))
         assert path == ""
 
@@ -317,7 +317,7 @@ class TestPlotStereoSetCategories:
 
 class TestPlotWinoBiasPronouns:
     def test_empty_dataframe_returns_empty_string(self, tmp_path):
-        df = pd.DataFrame(columns=["model", "pronoun", "accuracy"])
+        df = pd.DataFrame(columns=pd.Index(["model", "pronoun", "accuracy"]))
         path = plot_winobias_pronouns(df, str(tmp_path))
         assert path == ""
 
@@ -331,7 +331,7 @@ class TestPlotWinoBiasPronouns:
 
 class TestPlotDemographicGroups:
     def test_empty_dataframe_returns_empty_string(self, tmp_path):
-        df = pd.DataFrame(columns=["model", "group", "n", "avg_output_length"])
+        df = pd.DataFrame(columns=pd.Index(["model", "group", "n", "avg_output_length"]))
         path = plot_demographic_groups(df, str(tmp_path))
         assert path == ""
 
@@ -345,7 +345,7 @@ class TestPlotDemographicGroups:
 
 class TestPlotSizeVsBias:
     def test_empty_dataframe_returns_empty_string(self, tmp_path):
-        df = pd.DataFrame(columns=["model", "benchmark", "score", "params"])
+        df = pd.DataFrame(columns=pd.Index(["model", "benchmark", "score", "params"]))
         path = plot_size_vs_bias(df, str(tmp_path))
         assert path == ""
 

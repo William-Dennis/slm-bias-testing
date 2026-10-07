@@ -20,8 +20,8 @@ jobs:
         with:
           python-version: "3.11"
       - run: uv sync --extra dev
-      - run: uv run ruff check src tests
-      - run: uv run ruff format --check src tests
+      - run: uv run ruff check src tests scripts
+      - run: uv run ruff format --check src tests scripts
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
@@ -36,7 +36,7 @@ jobs:
         with:
           python-version: "3.11"
       - run: uv sync --extra dev
-      - run: uv run ty check --exclude tests
+      - run: uv run ty check
 
   test:
     name: Test (Python ${{ matrix.python-version }})
