@@ -51,6 +51,7 @@ scripts/
 
 docs/
 ├── cv-screening-methodology.md  # Design, scoring, statistics, limitations
+├── model-selection.md           # Leaderboard-grounded model choices + shortlist
 └── ollama-pool-manager.md       # Pool design spec (implemented in #32)
 ```
 

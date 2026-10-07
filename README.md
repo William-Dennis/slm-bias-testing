@@ -208,6 +208,7 @@ scripts/
 
 docs/
   cv-screening-methodology.md — Benchmark design, scoring, statistics, limitations
+  model-selection.md          — Leaderboard-grounded model choices + shortlist
   ollama-pool-manager.md      — Pool design spec
 
 tests/                — unit tests for every module
