@@ -19,6 +19,8 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.11"
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
       - run: uv sync --extra dev
       - run: uv run ruff check src tests scripts
       - run: uv run ruff format --check src tests scripts
@@ -35,6 +37,8 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.11"
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
       - run: uv sync --extra dev
       - run: uv run ty check
 
@@ -49,5 +53,7 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ matrix.python-version }}
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
       - run: uv sync --extra dev
       - run: uv run pytest -m "not integration and not slow"
