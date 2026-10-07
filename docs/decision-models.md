@@ -117,6 +117,13 @@ corpus (600/600); any corpus or prompt growth must re-run the fit sweep
 
 ## What an integration (PR I) would add
 
+> **Status: implemented** (issue #46, see
+> [Integration](#integration-decision-models-as-benchmark-models) below).
+> Deviations from this plan: the client lives in `decision_models.py`
+> (next to the transport), and records keep the standard `score` column
+> (rounded `score_continuous`; the raw typed payload stays in `response`)
+> instead of a separate `score_source` field.
+
 1. **Registry:** `ModelMeta` gains `api: "chat" | "systemone"`; entries for
    the chosen tag(s) (recommend `laya:421m-typed-decisions-mlx-fp16` as the
    only corpus-complete one; keep `322m-multilingual` as the faster
@@ -209,7 +216,7 @@ Three findings that shape everything downstream:
    while **template dominates** (46.3-60.0 across tags, e.g. template_d
    ~8-12 points below the rest). The instrument clearly reads content;
    whether demographic insensitivity is real or a sensitivity limit of a
-   near-uniform head is the first question for the PR I analysis.
+   near-uniform head is the first question for the follow-up analysis.
 
 ### Limitations of v2 (honest list)
 
@@ -217,12 +224,49 @@ Three findings that shape everything downstream:
   near-uniform probabilities are the visible symptom.
 - Numeric level labels (`"0"..."100"`) may contribute to the flat
   distributions; descriptive criteria (e.g. reject..top-candidate) would
-  trade away literal step-10 labels — worth an A/B in PR I.
+  trade away literal step-10 labels — worth a follow-up A/B.
 - English tag is partial (480/600, template_e only); budget strict on
   480/600.
 - The state uses a stub JD, so v2 numbers are **not comparable** to the
   generative instrument's full-JD scores either — different instrument,
   recorded as `instrument: decision-v2` in the sweep JSON.
+
+## Integration: decision models as benchmark models
+
+`api: "systemone"` models run the CV-screening benchmark through the same
+records/analysis pipeline as chat models (issue #46). Three registry
+entries — `laya-english`, `laya-multilingual`, `laya-typed-decisions` —
+carry the new required `ModelMeta.api` field (`"chat"` for everything
+else).
+
+| piece | choice |
+|---|---|
+| client | `SystemOneClient` (`decision_models.py`) — `Predictor`-compatible: `predict(prompt, temperature)` posts the prompt **as state** with the fixed `score_question()`, returns `<raw answers JSON>\nNN/100` so `parse_score()` and the `response` column work unchanged |
+| score mapping | record `score` = **round-half-up of `score_continuous`** (the v2 headline), clamped 0–100 — argmax `score_discrete` is constant-ish noise and would show zero variance; the raw payload in `response` keeps the full distribution |
+| state | `decision_base_frame()` + the existing `cv_prompt()` = `decision_state()` byte-for-byte (all 600 corpus CVs verified); no second prompt builder |
+| determinism | `n_runs` is **forced to 1** (explicit `--n-runs > 1` is rejected before the run) — repeated runs add nothing, per the spike's byte-identical finding |
+| pool | skipped: the Node.js pool speaks the chat API only; sequential `SystemOneClient` calls take 12–20 s per full corpus anyway |
+| scope | CV screening only — laya cannot generate text, so stereoset/winobias/demographic-bias are skipped with a logged error |
+| provenance | `cv-screening.json` records `"api": "systemone"` and `temperature: null` (ignored by the protocol) |
+
+### Committed results (`results/{model}/cv-screening/`)
+
+Full 600-CV corpus, `n_runs=1`, rerun with
+`uv run python scripts/run_benchmarks.py --models laya-english,laya-multilingual,laya-typed-decisions --benchmark cv-screening`:
+
+| model | scored | mean (int score) | std | attrition |
+|---|---|---|---|---|
+| `laya-english` | 480/600 | 52.5 | 3.9 | 120 ctx errors (all template_e, 512-token window) |
+| `laya-multilingual` | 600/600 | 40.3 | 8.0 | — |
+| `laya-typed-decisions` | 600/600 | 56.7 | 4.5 | — |
+
+Means match the v2 sweep's `score_continuous` means to 0.1 — the benchmark
+path is the same instrument. First-look factor separation repeats the
+sweep finding: demographic deltas ≤ 0.3 points, `template_name` explains
+~99% of variance (see each model's `analysis_summary.txt` for group CIs,
+Holm-corrected pairwise tests and the variance breakdown). Whether that
+demographic insensitivity is real or a sensitivity limit of the
+near-uniform head remains the open analysis question.
 
 ## Reproducing the spike
 

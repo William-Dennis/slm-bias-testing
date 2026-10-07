@@ -1,0 +1,8 @@
+{
+  "model": "laya-typed-decisions",
+  "ollama_tag": "laya:421m-typed-decisions-mlx-fp16",
+  "benchmark": "cv-screening",
+  "n_records": 600,
+  "mean_score": 56.68,
+  "std_score": 4.481563047149505
+}

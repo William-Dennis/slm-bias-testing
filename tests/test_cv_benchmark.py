@@ -18,6 +18,7 @@ from slm_bias_testing.cv_screening import (
     sha256_hash,
     stratified_sample,
 )
+from slm_bias_testing.decision_instrument import decision_base_frame, decision_state
 
 JOB_DESC = "Junior Data Analyst"
 
@@ -384,3 +385,58 @@ class TestRunCvScreeningPool:
         df = self._run(tmp_path, small_cvs, retry, n_runs=1)
         assert len(retry.job_ids) == 32  # failures were not marked seen
         assert len(df) == 32
+
+
+class SystemOneStub:
+    """Predictor double for the systemone path: records prompts, fixed score line."""
+
+    def __init__(self) -> None:
+        self.prompts: list[str] = []
+
+    def predict(self, prompt: str, temperature: float = 1.0) -> str:
+        self.prompts.append(prompt)
+        return '{"x":1}\n47/100'
+
+
+class TestSystemOnePath:
+    """api="systemone" runs the decision instrument sequentially, no chat warmup."""
+
+    def _run(self, output_dir, cv_data, stub, **kwargs):
+        return run_cv_screening(
+            model_name="laya-english",
+            output_dir=str(output_dir),
+            cv_data=cv_data,
+            job_desc=JOB_DESC,
+            api="systemone",
+            model_factory=lambda **factory_kwargs: stub,
+            **kwargs,
+        )
+
+    def test_scores_with_decision_state_prompts(self, tmp_path, small_cvs):
+        stub = SystemOneStub()
+        df = self._run(tmp_path, small_cvs, stub, n_runs=1)
+
+        assert len(df) == 32
+        assert (df["score"] == 47).all()
+        assert df["response"].str.endswith("47/100").all()
+        assert stub.prompts == [decision_state(cv) for cv in small_cvs]
+
+        payload = json.loads((tmp_path / "cv-screening.json").read_text())
+        provenance = payload["provenance"]
+        assert provenance["api"] == "systemone"
+        assert provenance["temperature"] is None
+        assert provenance["prompt_sha256"] == sha256_hash(decision_base_frame())
+
+    def test_pool_client_rejected(self, tmp_path, small_cvs):
+        with pytest.raises(ValueError, match="chat-only"):
+            self._run(tmp_path, small_cvs, SystemOneStub(), pool_client=FakePool())
+
+    def test_invalid_api_rejected(self, tmp_path, small_cvs):
+        with pytest.raises(ValueError, match="unsupported api"):
+            run_cv_screening(
+                model_name="mock-model",
+                output_dir=str(tmp_path),
+                cv_data=small_cvs,
+                job_desc=JOB_DESC,
+                api="openai",
+            )

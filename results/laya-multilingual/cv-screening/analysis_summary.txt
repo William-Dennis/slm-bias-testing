@@ -1,0 +1,209 @@
+==========================================================================================
+STATISTICAL ANALYSIS
+==========================================================================================
+
+--- Overall ---
+  N rows (CV x run): 600
+  N CVs (independent units): 600
+  Overall mean score: 40.30
+  Overall std: 8.03
+  Note: CIs, t-tests and effect sizes below are computed over
+  per-CV means (repeated runs collapsed), not raw runs.
+
+──────────────────────────────────────────────────────────────────────────────────────────
+Group: name
+──────────────────────────────────────────────────────────────────────────────────────────
+                      mean       std  count   ci_lower   ci_upper
+name                                                             
+Aisha Patel      40.716667  8.061399     60  38.634186  42.799147
+Alex Morgan      40.150000  8.329700     60  37.998210  42.301790
+Alice Brown      39.800000  8.617680     60  37.573817  42.026183
+Fatima Okafor    40.600000  7.481503     60  38.667323  42.532677
+James Brown      39.566667  8.456001     60  37.382250  41.751083
+Jamie Taylor     39.983333  8.703188     60  37.735061  42.231605
+Mei Chen         40.683333  7.890118     60  38.645100  42.721567
+Mohammed Ali     40.666667  7.696943     60  38.678335  42.654998
+Olufemi Adebayo  40.433333  7.076738     60  38.605218  42.261449
+Wei Chen         40.383333  8.322100     60  38.233507  42.533160
+
+Pairwise comparisons (p_holm = Holm-Bonferroni adjusted):
+         group1          group2  cohens_d  p_value  p_holm  mean1  mean2  n1  n2
+    Aisha Patel     Alex Morgan     0.069   0.7056     1.0  40.72  40.15  60  60
+    Aisha Patel     Alice Brown     0.110   0.5485     1.0  40.72  39.80  60  60
+    Aisha Patel   Fatima Okafor     0.015   0.9347     1.0  40.72  40.60  60  60
+    Aisha Patel     James Brown     0.139   0.4473     1.0  40.72  39.57  60  60
+    Aisha Patel    Jamie Taylor     0.087   0.6330     1.0  40.72  39.98  60  60
+    Aisha Patel        Mei Chen     0.004   0.9818     1.0  40.72  40.68  60  60
+    Aisha Patel    Mohammed Ali     0.006   0.9723     1.0  40.72  40.67  60  60
+    Aisha Patel Olufemi Adebayo     0.037   0.8382     1.0  40.72  40.43  60  60
+    Aisha Patel        Wei Chen     0.041   0.8240     1.0  40.72  40.38  60  60
+    Alex Morgan     Alice Brown     0.041   0.8214     1.0  40.15  39.80  60  60
+    Alex Morgan   Fatima Okafor    -0.057   0.7561     1.0  40.15  40.60  60  60
+    Alex Morgan     James Brown     0.070   0.7041     1.0  40.15  39.57  60  60
+    Alex Morgan    Jamie Taylor     0.020   0.9148     1.0  40.15  39.98  60  60
+    Alex Morgan        Mei Chen    -0.066   0.7194     1.0  40.15  40.68  60  60
+    Alex Morgan    Mohammed Ali    -0.064   0.7248     1.0  40.15  40.67  60  60
+    Alex Morgan Olufemi Adebayo    -0.037   0.8412     1.0  40.15  40.43  60  60
+    Alex Morgan        Wei Chen    -0.028   0.8783     1.0  40.15  40.38  60  60
+    Alice Brown   Fatima Okafor    -0.099   0.5882     1.0  39.80  40.60  60  60
+    Alice Brown     James Brown     0.027   0.8813     1.0  39.80  39.57  60  60
+    Alice Brown    Jamie Taylor    -0.021   0.9079     1.0  39.80  39.98  60  60
+    Alice Brown        Mei Chen    -0.107   0.5593     1.0  39.80  40.68  60  60
+    Alice Brown    Mohammed Ali    -0.106   0.5624     1.0  39.80  40.67  60  60
+    Alice Brown Olufemi Adebayo    -0.080   0.6608     1.0  39.80  40.43  60  60
+    Alice Brown        Wei Chen    -0.069   0.7067     1.0  39.80  40.38  60  60
+  Fatima Okafor     James Brown     0.129   0.4798     1.0  40.60  39.57  60  60
+  Fatima Okafor    Jamie Taylor     0.076   0.6780     1.0  40.60  39.98  60  60
+  Fatima Okafor        Mei Chen    -0.011   0.9528     1.0  40.60  40.68  60  60
+  Fatima Okafor    Mohammed Ali    -0.009   0.9617     1.0  40.60  40.67  60  60
+  Fatima Okafor Olufemi Adebayo     0.023   0.9005     1.0  40.60  40.43  60  60
+  Fatima Okafor        Wei Chen     0.027   0.8810     1.0  40.60  40.38  60  60
+    James Brown    Jamie Taylor    -0.049   0.7907     1.0  39.57  39.98  60  60
+    James Brown        Mei Chen    -0.137   0.4560     1.0  39.57  40.68  60  60
+    James Brown    Mohammed Ali    -0.136   0.4577     1.0  39.57  40.67  60  60
+    James Brown Olufemi Adebayo    -0.111   0.5439     1.0  39.57  40.43  60  60
+    James Brown        Wei Chen    -0.097   0.5949     1.0  39.57  40.38  60  60
+   Jamie Taylor        Mei Chen    -0.084   0.6452     1.0  39.98  40.68  60  60
+   Jamie Taylor    Mohammed Ali    -0.083   0.6495     1.0  39.98  40.67  60  60
+   Jamie Taylor Olufemi Adebayo    -0.057   0.7566     1.0  39.98  40.43  60  60
+   Jamie Taylor        Wei Chen    -0.047   0.7974     1.0  39.98  40.38  60  60
+       Mei Chen    Mohammed Ali     0.002   0.9907     1.0  40.68  40.67  60  60
+       Mei Chen Olufemi Adebayo     0.033   0.8553     1.0  40.68  40.43  60  60
+       Mei Chen        Wei Chen     0.037   0.8398     1.0  40.68  40.38  60  60
+   Mohammed Ali Olufemi Adebayo     0.032   0.8631     1.0  40.67  40.43  60  60
+   Mohammed Ali        Wei Chen     0.035   0.8468     1.0  40.67  40.38  60  60
+Olufemi Adebayo        Wei Chen     0.006   0.9718     1.0  40.43  40.38  60  60
+
+──────────────────────────────────────────────────────────────────────────────────────────
+Group: university
+──────────────────────────────────────────────────────────────────────────────────────────
+                                mean       std  count   ci_lower   ci_upper
+university                                                                 
+Newcastle University       40.140000  8.445665    150  38.777370  41.502630
+University of Bristol      40.413333  7.620342    150  39.183861  41.642805
+University of Oxford       40.166667  8.352484    150  38.819070  41.514263
+University of South Wales  40.473333  7.732696    150  39.225734  41.720933
+
+Pairwise comparisons (p_holm = Holm-Bonferroni adjusted):
+               group1                    group2  cohens_d  p_value  p_holm  mean1  mean2  n1  n2
+ Newcastle University     University of Bristol    -0.034   0.7687     1.0  40.14  40.41 150 150
+ Newcastle University      University of Oxford    -0.003   0.9781     1.0  40.14  40.17 150 150
+ Newcastle University University of South Wales    -0.041   0.7217     1.0  40.14  40.47 150 150
+University of Bristol      University of Oxford     0.031   0.7895     1.0  40.41  40.17 150 150
+University of Bristol University of South Wales    -0.008   0.9461     1.0  40.41  40.47 150 150
+ University of Oxford University of South Wales    -0.038   0.7417     1.0  40.17  40.47 150 150
+
+──────────────────────────────────────────────────────────────────────────────────────────
+Group: a_levels
+──────────────────────────────────────────────────────────────────────────────────────────
+                                                           mean       std  count   ci_lower   ci_upper
+a_levels                                                                                              
+Mathematics (A), Economics (A), Physics (B)              40.080  8.180354    200  38.939345  41.220655
+Mathematics (A*), Further Mathematics (A*), Physics (A)  40.340  8.327131    200  39.178878  41.501122
+Mathematics (B), Business Studies (B), Sociology (C)     40.475  7.590617    200  39.416577  41.533423
+
+Pairwise comparisons (p_holm = Holm-Bonferroni adjusted):
+                                                 group1                                                  group2  cohens_d  p_value  p_holm  mean1  mean2  n1  n2
+            Mathematics (A), Economics (A), Physics (B) Mathematics (A*), Further Mathematics (A*), Physics (A)    -0.031   0.7529     1.0  40.08  40.34 200 200
+            Mathematics (A), Economics (A), Physics (B)    Mathematics (B), Business Studies (B), Sociology (C)    -0.050   0.6170     1.0  40.08  40.48 200 200
+Mathematics (A*), Further Mathematics (A*), Physics (A)    Mathematics (B), Business Studies (B), Sociology (C)    -0.017   0.8655     1.0  40.34  40.48 200 200
+
+──────────────────────────────────────────────────────────────────────────────────────────
+Group: template_name
+──────────────────────────────────────────────────────────────────────────────────────────
+                    mean       std  count   ci_lower   ci_upper
+template_name                                                  
+template_a     41.983333  0.549764    120  41.883959  42.082707
+template_b     44.541667  0.500350    120  44.451225  44.632109
+template_c     44.100000  0.749229    120  43.964571  44.235429
+template_d     24.616667  1.866031    120  24.279367  24.953966
+template_e     46.250000  0.676745    120  46.127673  46.372327
+
+Pairwise comparisons (p_holm = Holm-Bonferroni adjusted):
+    group1     group2  cohens_d  p_value  p_holm  mean1  mean2  n1  n2
+template_a template_b    -4.867      0.0     0.0  41.98  44.54 120 120
+template_a template_c    -3.221      0.0     0.0  41.98  44.10 120 120
+template_a template_d    12.625      0.0     0.0  41.98  24.62 120 120
+template_a template_e    -6.920      0.0     0.0  41.98  46.25 120 120
+template_b template_c     0.693      0.0     0.0  44.54  44.10 120 120
+template_b template_d    14.585      0.0     0.0  44.54  24.62 120 120
+template_b template_e    -2.871      0.0     0.0  44.54  46.25 120 120
+template_c template_d    13.703      0.0     0.0  44.10  24.62 120 120
+template_c template_e    -3.012      0.0     0.0  44.10  46.25 120 120
+template_d template_e   -15.413      0.0     0.0  24.62  46.25 120 120
+
+──────────────────────────────────────────────────────────────────────────────────────────
+Group: name_gender
+──────────────────────────────────────────────────────────────────────────────────────────
+                  mean       std  count   ci_lower   ci_upper
+name_gender                                                  
+ambiguous    40.066667  8.483036    120  38.533294  41.600040
+female       40.450000  7.981516    240  39.435078  41.464922
+male         40.262500  7.868283    240  39.261977  41.263023
+
+Pairwise comparisons (p_holm = Holm-Bonferroni adjusted):
+   group1 group2  cohens_d  p_value  p_holm  mean1  mean2  n1  n2
+ambiguous female    -0.047   0.6806     1.0  40.07  40.45 120 240
+ambiguous   male    -0.024   0.8327     1.0  40.07  40.26 120 240
+   female   male     0.024   0.7956     1.0  40.45  40.26 240 240
+
+──────────────────────────────────────────────────────────────────────────────────────────
+Group: name_ethnicity
+──────────────────────────────────────────────────────────────────────────────────────────
+                     mean       std  count   ci_lower   ci_upper
+name_ethnicity                                                  
+black-african   40.516667  7.251755    120  39.205857  41.827476
+east-asian      40.533333  8.076247    120  39.073491  41.993176
+south-asian     40.691667  7.848134    120  39.273057  42.110276
+white-british   39.875000  8.476956    240  38.797078  40.952922
+
+Pairwise comparisons (p_holm = Holm-Bonferroni adjusted):
+       group1        group2  cohens_d  p_value  p_holm  mean1  mean2  n1  n2
+black-african    east-asian    -0.002   0.9866     1.0  40.52  40.53 120 120
+black-african   south-asian    -0.023   0.8578     1.0  40.52  40.69 120 120
+black-african white-british     0.079   0.4556     1.0  40.52  39.88 120 240
+   east-asian   south-asian    -0.020   0.8777     1.0  40.53  40.69 120 120
+   east-asian white-british     0.079   0.4740     1.0  40.53  39.88 120 240
+  south-asian white-british     0.099   0.3658     1.0  40.69  39.88 120 240
+
+──────────────────────────────────────────────────────────────────────────────────────────
+Group: university_prestige
+──────────────────────────────────────────────────────────────────────────────────────────
+                          mean       std  count   ci_lower   ci_upper
+university_prestige                                                  
+high                 40.166667  8.352484    150  38.819070  41.514263
+low                  40.306667  8.085204    300  39.388038  41.225295
+medium               40.413333  7.620342    150  39.183861  41.642805
+
+Pairwise comparisons (p_holm = Holm-Bonferroni adjusted):
+group1 group2  cohens_d  p_value  p_holm  mean1  mean2  n1  n2
+  high    low    -0.017   0.8656     1.0  40.17  40.31 150 300
+  high medium    -0.031   0.7895     1.0  40.17  40.41 150 150
+   low medium    -0.013   0.8910     1.0  40.31  40.41 300 150
+
+──────────────────────────────────────────────────────────────────────────────────────────
+Group: a_level_quality
+──────────────────────────────────────────────────────────────────────────────────────────
+                   mean       std  count   ci_lower   ci_upper
+a_level_quality                                               
+high             40.340  8.327131    200  39.178878  41.501122
+low              40.475  7.590617    200  39.416577  41.533423
+medium           40.080  8.180354    200  38.939345  41.220655
+
+Pairwise comparisons (p_holm = Holm-Bonferroni adjusted):
+group1 group2  cohens_d  p_value  p_holm  mean1  mean2  n1  n2
+  high    low    -0.017   0.8655     1.0  40.34  40.48 200 200
+  high medium     0.031   0.7529     1.0  40.34  40.08 200 200
+   low medium     0.050   0.6170     1.0  40.48  40.08 200 200
+
+──────────────────────────────────────────────────────────────────────────────────────────
+Variance Explained by Each Factor
+──────────────────────────────────────────────────────────────────────────────────────────
+  name: variance = 0.148, proportion = 0.002
+  university: variance = 0.022, proportion = 0.000
+  a_levels: variance = 0.027, proportion = 0.000
+  template_name: variance = 63.327, proportion = 0.984
+  name_gender: variance = 0.020, proportion = 0.000
+  name_ethnicity: variance = 0.123, proportion = 0.002
+  university_prestige: variance = 0.008, proportion = 0.000
+  a_level_quality: variance = 0.027, proportion = 0.000

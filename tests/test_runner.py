@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import sys
 import tempfile
@@ -20,7 +21,7 @@ class TestRunModelBenchmarks:
     @patch("slm_bias_testing.benchmark_runner.pull_model", return_value=True)
     @patch("slm_bias_testing.benchmark_runner.get_model")
     def test_skip_existing_results(self, mock_get_model, mock_pull, mock_pool):
-        mock_get_model.return_value = {"ollama_tag": "smollm:135m"}
+        mock_get_model.return_value = {"ollama_tag": "smollm:135m", "api": "chat"}
 
         with tempfile.TemporaryDirectory() as tmpdir:
             results_dir = os.path.join(tmpdir, "smollm-135m", "cv-screening")
@@ -42,7 +43,7 @@ class TestRunModelBenchmarks:
     @patch("slm_bias_testing.benchmark_runner.pull_model", return_value=False)
     @patch("slm_bias_testing.benchmark_runner.get_model")
     def test_skip_on_pull_failure(self, mock_get_model, mock_pull, mock_pool):
-        mock_get_model.return_value = {"ollama_tag": "smollm:135m"}
+        mock_get_model.return_value = {"ollama_tag": "smollm:135m", "api": "chat"}
 
         with tempfile.TemporaryDirectory() as tmpdir:
             run_model_benchmarks(
@@ -141,6 +142,82 @@ class TestDispatch:
         )
         main()
         assert [c.args[0] for c in mock_run.call_args_list] == ["smollm-135m", "gemma3-270m"]
+
+
+class TestSystemOneDispatch:
+    """api="systemone" models: no pool, n_runs forced to 1, cv-screening only."""
+
+    @patch("slm_bias_testing.cv_screening.run_cv_screening")
+    @patch("slm_bias_testing.model_clients.OllamaPoolClient")
+    @patch("slm_bias_testing.benchmark_runner.pull_model", return_value=True)
+    @patch("slm_bias_testing.benchmark_runner.get_model")
+    def test_systemone_skips_pool_and_passes_api(
+        self, mock_get_model, mock_pull, mock_pool, mock_run
+    ):
+        mock_get_model.return_value = {
+            "ollama_tag": "laya:421m-english-mlx-fp16",
+            "api": "systemone",
+        }
+        mock_run.return_value = pd.DataFrame({"score": [50.0]})
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_model_benchmarks("laya-english", "cv-screening", tmpdir)
+
+        mock_pool.assert_not_called()
+        kwargs = mock_run.call_args.kwargs
+        assert kwargs["api"] == "systemone"
+        assert kwargs["n_runs"] == 1
+        assert kwargs["pool_client"] is None
+
+    @patch("slm_bias_testing.cv_screening.run_cv_screening")
+    @patch("slm_bias_testing.model_clients.OllamaPoolClient")
+    @patch("slm_bias_testing.benchmark_runner.pull_model", return_value=True)
+    @patch("slm_bias_testing.benchmark_runner.get_model")
+    def test_systemone_rejects_n_runs_gt_one(
+        self, mock_get_model, mock_pull, mock_pool, mock_run, caplog
+    ):
+        mock_get_model.return_value = {
+            "ollama_tag": "laya:421m-english-mlx-fp16",
+            "api": "systemone",
+        }
+        with tempfile.TemporaryDirectory() as tmpdir, caplog.at_level(logging.ERROR):
+            run_model_benchmarks("laya-english", "cv-screening", tmpdir, n_runs=5)
+
+        mock_run.assert_not_called()
+        mock_pool.assert_not_called()
+        assert any("deterministic" in message for message in caplog.messages)
+
+    @patch("slm_bias_testing.cv_screening.run_cv_screening")
+    @patch("slm_bias_testing.model_clients.OllamaPoolClient")
+    @patch("slm_bias_testing.benchmark_runner.pull_model", return_value=True)
+    @patch("slm_bias_testing.benchmark_runner.get_model")
+    def test_systemone_only_supports_cv_screening(
+        self, mock_get_model, mock_pull, mock_pool, mock_run, caplog
+    ):
+        mock_get_model.return_value = {
+            "ollama_tag": "laya:421m-english-mlx-fp16",
+            "api": "systemone",
+        }
+        with tempfile.TemporaryDirectory() as tmpdir, caplog.at_level(logging.ERROR):
+            run_model_benchmarks("laya-english", "stereoset", tmpdir)
+
+        mock_run.assert_not_called()
+        assert any(
+            "stereoset" in message and "not supported" in message for message in caplog.messages
+        )
+        assert not os.path.exists(os.path.join(tmpdir, "laya-english"))
+
+    @patch("slm_bias_testing.cv_screening.run_cv_screening")
+    @patch("slm_bias_testing.model_clients.OllamaPoolClient")
+    @patch("slm_bias_testing.benchmark_runner.pull_model", return_value=True)
+    @patch("slm_bias_testing.benchmark_runner.get_model")
+    def test_chat_default_n_runs_is_ten(self, mock_get_model, mock_pull, mock_pool, mock_run):
+        mock_get_model.return_value = {"ollama_tag": "smollm:135m", "api": "chat"}
+        mock_run.return_value = pd.DataFrame({"score": [1.0]})
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_model_benchmarks("smollm-135m", "cv-screening", tmpdir)
+
+        assert mock_run.call_args.kwargs["n_runs"] == 10
+        assert mock_run.call_args.kwargs["api"] == "chat"
 
 
 class TestSummaryWriting:

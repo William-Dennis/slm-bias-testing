@@ -53,36 +53,63 @@ def run_model_benchmarks(
     max_samples: int | None = None,
     pool_size: int = 4,
     batch_size: int = 40,
-    n_runs: int = 10,
+    n_runs: int | None = None,
     adaptive: bool = True,
 ) -> None:
-    """Run benchmark(s) for a single model with resume support."""
+    """Run benchmark(s) for a single model with resume support.
+
+    ``n_runs=None`` resolves to 10 for chat models and 1 for decision
+    (``api="systemone"``) models, which are byte-deterministic — repeated
+    runs add nothing and are rejected.
+    """
     from slm_bias_testing.model_clients import OllamaPoolClient
 
     model_config = get_model(model_name)
     ollama_tag = model_config["ollama_tag"]
+    api = model_config["api"]
+
+    if api == "systemone":
+        if n_runs not in (None, 1):
+            logger.error(
+                "decision models are deterministic; --n-runs > 1 not allowed for %s", model_name
+            )
+            return
+        resolved_runs = 1
+    else:
+        resolved_runs = 10 if n_runs is None else n_runs
 
     if not pull_model(ollama_tag):
         logger.error("Skipping %s due to pull failure", model_name)
         return
 
     bench_list = get_benchmarks(benchmark)
+    if api == "systemone":
+        for bench in bench_list:
+            if bench != "cv-screening":
+                logger.error(
+                    "Benchmark %s is not supported for systemone model %s", bench, model_name
+                )
+        if "cv-screening" not in bench_list:
+            return
+        bench_list = ["cv-screening"]
 
-    # Create pool client once per model — it manages Ollama lifecycle
+    # Create pool client once per model — it manages Ollama lifecycle.
+    # The pool is chat-only: systemone models always run sequentially.
     pool_client: OllamaPoolClient | None = None
     try:
-        try:
-            pool_client = OllamaPoolClient(
-                model_name=ollama_tag,
-                pool_size=pool_size,
-                batch_size=batch_size,
-                adaptive=adaptive,
-            )
-        except Exception as exc:
-            logger.warning(
-                "Ollama pool unavailable (%s) — falling back to sequential Model.predict",
-                exc,
-            )
+        if api != "systemone":
+            try:
+                pool_client = OllamaPoolClient(
+                    model_name=ollama_tag,
+                    pool_size=pool_size,
+                    batch_size=batch_size,
+                    adaptive=adaptive,
+                )
+            except Exception as exc:
+                logger.warning(
+                    "Ollama pool unavailable (%s) — falling back to sequential Model.predict",
+                    exc,
+                )
         for bench in bench_list:
             results_dir = os.path.join(base_output_dir, model_name, bench)
             results_file = os.path.join(results_dir, "results.json")
@@ -102,7 +129,8 @@ def run_model_benchmarks(
                     output_dir=results_dir,
                     max_samples=max_samples,
                     pool_client=pool_client,
-                    n_runs=n_runs,
+                    n_runs=resolved_runs,
+                    api=api,
                 )
                 summary = {
                     "model": model_name,
@@ -224,8 +252,8 @@ def main() -> None:
     parser.add_argument(
         "--n-runs",
         type=int,
-        default=10,
-        help="Number of repeated runs per CV in cv-screening (default: 10)",
+        default=None,
+        help="Number of repeated runs per CV in cv-screening (default: 10 chat / 1 systemone)",
     )
     group = parser.add_mutually_exclusive_group()
     group.add_argument(

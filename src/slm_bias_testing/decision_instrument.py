@@ -1,9 +1,10 @@
 """Decision-model screening instrument - a flow separate from the generative path.
 
-This module deliberately does **not** reuse ``build_base_prompt`` /
-``cv_prompt`` from :mod:`slm_bias_testing.cv_screening`, and nothing in the
-generative benchmark imports this module. The two instruments share only the
-CV corpus (``data/cvs.py``); every prompt string here is new.
+This module does **not** reuse ``build_base_prompt`` from
+:mod:`slm_bias_testing.cv_screening`; ``cv_screening`` imports only
+:func:`decision_base_frame` for ``api="systemone"`` runs, where it completes
+the frame with its existing ``cv_prompt``. Otherwise the two instruments
+share only the CV corpus (``data/cvs.py``).
 
 Instrument properties (see docs/decision-models.md):
 
@@ -37,13 +38,19 @@ JD_STUB = (
 _STATE_ERROR_RE = re.compile(r"state has (\d+) tokens")
 
 
+def decision_base_frame() -> str:
+    """Base frame that ``cv_screening.cv_prompt`` completes to :func:`decision_state`."""
+    return f"Screening for: {JD_STUB}"
+
+
 def decision_state(cv: dict[str, Any]) -> str:
     """Build the decision-model state for one corpus CV.
 
     The CV text is injected byte-identical; only the surrounding frame is
-    this instrument's own.
+    this instrument's own. The composition mirrors ``cv_prompt`` on
+    :func:`decision_base_frame`, so both instruments stay byte-identical.
     """
-    return f"Screening for: {JD_STUB}\nCandidate CV\n{cv['cv']}"
+    return decision_base_frame() + f"\nCandidate CV\n{cv['cv']}"
 
 
 def score_question() -> dict[str, Any]:

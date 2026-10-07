@@ -20,22 +20,44 @@ Four bias benchmarks, one command per model:
 |---|---|---|
 | **StereoSet** | Stereotype score across gender, race, religion, profession | 2106 |
 | **WinoBias** | Gender pronoun resolution bias (pro vs anti-stereotypical) | 1584 |
-| **CV Screening** | Scoring bias by name, gender, ethnicity, university prestige | 600 CVs × 10 runs |
+| **CV Screening** | Scoring bias by name, gender, ethnicity, university prestige | 600 CVs × 10 runs* |
 | **Demographic Bias** | Output length disparity across 8 demographic groups | 400 prompts |
+
+\* decision models (`api: systemone`) are deterministic — `n_runs` is
+forced to 1.
 
 ---
 
 ## Main results
 
-> **⚠️ Stale, unverified figures.** `results/` was wiped in repo cleanup (#28)
-> and the charts under [`figs/`](figs/) were recovered from old git history
-> (#35). They predate the current benchmark code, are **mutually inconsistent**
-> (the README/temporal StereoScores disagree with the heatmap and size-vs-bias
-> charts; CV data appears in some charts but not others), and **cannot be
-> reproduced from this checkout**. Treat every number below as historical
-> context only. Regenerate before citing anything: `uv run python -m
+> **Mixed provenance — read carefully.** `results/` was wiped in repo
+> cleanup (#28) and is committed again since the decision-model
+> integration (#46): the three laya `/v1/systemone` models have fresh,
+> reproducible full-corpus runs under `results/{model}/cv-screening/`
+> (table below). Everything else in this section — the [`figs/`](figs/)
+> charts and the chat-model numbers — was recovered from old git history
+> (#35): it predates the current benchmark code, is **mutually
+> inconsistent** (the README/temporal StereoScores disagree with the
+> heatmap and size-vs-bias charts; CV data appears in some charts but not
+> others), and **cannot be reproduced from this checkout**. Treat those
+> as historical context only. Regenerate before citing: `uv run python -m
 > slm_bias_testing.visualisations` and `uv run python -m slm_bias_testing.temporal`
-> (requires a fresh `results/` from the commands in Quick start).
+> (requires a fresh `results/` for those models from the Quick start).
+
+### Decision-model CV screening (fresh, reproducible)
+
+Typed `/v1/systemone` scoring, full 600-CV corpus, `n_runs=1`
+(deterministic); regenerate with
+`uv run python scripts/run_benchmarks.py --models laya-english,laya-multilingual,laya-typed-decisions --benchmark cv-screening`:
+
+| Model | Scored | Mean | Std | Notes |
+|---|---|---|---|---|
+| laya-english | 480/600 | **52.5** | 3.9 | 120 ctx overflows (512-token window, template_e) |
+| laya-multilingual | 600/600 | **40.3** | 8.0 | fastest (~12 s) |
+| laya-typed-decisions | 600/600 | **56.7** | 4.5 | corpus-complete |
+
+Method, score semantics and caveats (probability-weighted scores,
+near-uniform heads): [`docs/decision-models.md`](docs/decision-models.md).
 
 Results below are historical smoke runs (`--max-samples 20` unless noted).
 
@@ -110,7 +132,7 @@ Normalised output length by demographic group per model. Disparities suggest dem
 
 ## Models (under 1B params)
 
-10 models across 5 families, spanning July 2024 to October 2025:
+13 models across 6 families, spanning July 2024 to September 2026:
 
 | Name | Ollama Tag | Params | Release | Family |
 |---|---|---|---|---|
@@ -124,6 +146,13 @@ Normalised output length by demographic group per model. Disparities suggest dem
 | lfm2-350m | sam860/lfm2:350m | 350M | 2025-07 | liquid |
 | lfm2-700m | sam860/lfm2:700m | 700M | 2025-07 | liquid |
 | granite4-350m | granite4:350m | 350M | 2025-10 | ibm |
+| laya-english | laya:421m-english-mlx-fp16 | 421M | 2026-09 | convai |
+| laya-multilingual | laya:322m-multilingual-mlx-fp16 | 322M | 2026-09 | convai |
+| laya-typed-decisions | laya:421m-typed-decisions-mlx-fp16 | 421M | 2026-09 | convai |
+
+The three laya entries are **decision models** (`api: systemone`): typed
+answers from one encoder pass, no text generation — CV screening only,
+sequential, `n_runs` forced to 1.
 
 ---
 
@@ -138,6 +167,9 @@ uv run python scripts/run_benchmarks.py --models smollm2-135m --benchmark all --
 
 # Run a specific benchmark with limited samples
 uv run python scripts/run_benchmarks.py --models smollm2-135m --benchmark stereoset --max-samples 20 --pool-size 2
+
+# Decision model (laya, /v1/systemone — CV screening only, sequential)
+uv run python scripts/run_benchmarks.py --models laya-typed-decisions --benchmark cv-screening
 
 # Run all models, all benchmarks
 uv run python scripts/run_benchmarks.py --models all --pool-size 6

@@ -1,0 +1,1497 @@
+{
+  "benchmark": "cv-screening",
+  "n_examples": 600,
+  "mean_score": 40.29833333333333,
+  "std_score": 8.027248912135747,
+  "attrition": {
+    "n_planned": 600,
+    "n_scored": 600,
+    "n_outstanding": 0,
+    "n_parse_failures_this_invocation": 0,
+    "n_api_errors_this_invocation": 0,
+    "n_records_total": 600
+  },
+  "provenance": {
+    "model": "laya:322m-multilingual-mlx-fp16",
+    "package_version": "0.1.0",
+    "api": "systemone",
+    "n_runs": 1,
+    "max_samples": null,
+    "temperature": null,
+    "num_ctx": 2048,
+    "keep_alive": 5.0,
+    "prompt_sha256": "0978dd32e292a76534b91f61ccbcd7e8df2f7a116da47a2ae4b6f94d4b6550e1",
+    "timestamp": "2026-10-08T00:14:25.076670"
+  },
+  "groups": {
+    "name": {
+      "summary": [
+        {
+          "name": "Aisha Patel",
+          "mean": 40.7166666667,
+          "std": 8.0613992701,
+          "count": 60,
+          "ci_lower": 38.6341864133,
+          "ci_upper": 42.7991469201
+        },
+        {
+          "name": "Alex Morgan",
+          "mean": 40.15,
+          "std": 8.3296997728,
+          "count": 60,
+          "ci_lower": 37.9982103773,
+          "ci_upper": 42.3017896227
+        },
+        {
+          "name": "Alice Brown",
+          "mean": 39.8,
+          "std": 8.6176798954,
+          "count": 60,
+          "ci_lower": 37.5738172232,
+          "ci_upper": 42.0261827768
+        },
+        {
+          "name": "Fatima Okafor",
+          "mean": 40.6,
+          "std": 7.4815026135,
+          "count": 60,
+          "ci_lower": 38.6673229378,
+          "ci_upper": 42.5326770622
+        },
+        {
+          "name": "James Brown",
+          "mean": 39.5666666667,
+          "std": 8.4560011118,
+          "count": 60,
+          "ci_lower": 37.3822499484,
+          "ci_upper": 41.7510833849
+        },
+        {
+          "name": "Jamie Taylor",
+          "mean": 39.9833333333,
+          "std": 8.7031879347,
+          "count": 60,
+          "ci_lower": 37.7350614877,
+          "ci_upper": 42.231605179
+        },
+        {
+          "name": "Mei Chen",
+          "mean": 40.6833333333,
+          "std": 7.8901175405,
+          "count": 60,
+          "ci_lower": 38.6450998425,
+          "ci_upper": 42.7215668241
+        },
+        {
+          "name": "Mohammed Ali",
+          "mean": 40.6666666667,
+          "std": 7.6969434098,
+          "count": 60,
+          "ci_lower": 38.6783353454,
+          "ci_upper": 42.654997988
+        },
+        {
+          "name": "Olufemi Adebayo",
+          "mean": 40.4333333333,
+          "std": 7.0767383722,
+          "count": 60,
+          "ci_lower": 38.6052179622,
+          "ci_upper": 42.2614487045
+        },
+        {
+          "name": "Wei Chen",
+          "mean": 40.3833333333,
+          "std": 8.3220997731,
+          "count": 60,
+          "ci_lower": 38.2335069988,
+          "ci_upper": 42.5331596679
+        }
+      ],
+      "pairwise": [
+        {
+          "index": 0,
+          "group_col": "name",
+          "group1": "Aisha Patel",
+          "group2": "Alex Morgan",
+          "cohens_d": 0.069,
+          "t_statistic": 0.379,
+          "p_value": 0.7056,
+          "mean1": 40.72,
+          "mean2": 40.15,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 1,
+          "group_col": "name",
+          "group1": "Aisha Patel",
+          "group2": "Alice Brown",
+          "cohens_d": 0.11,
+          "t_statistic": 0.602,
+          "p_value": 0.5485,
+          "mean1": 40.72,
+          "mean2": 39.8,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 2,
+          "group_col": "name",
+          "group1": "Aisha Patel",
+          "group2": "Fatima Okafor",
+          "cohens_d": 0.015,
+          "t_statistic": 0.082,
+          "p_value": 0.9347,
+          "mean1": 40.72,
+          "mean2": 40.6,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 3,
+          "group_col": "name",
+          "group1": "Aisha Patel",
+          "group2": "James Brown",
+          "cohens_d": 0.139,
+          "t_statistic": 0.762,
+          "p_value": 0.4473,
+          "mean1": 40.72,
+          "mean2": 39.57,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 4,
+          "group_col": "name",
+          "group1": "Aisha Patel",
+          "group2": "Jamie Taylor",
+          "cohens_d": 0.087,
+          "t_statistic": 0.479,
+          "p_value": 0.633,
+          "mean1": 40.72,
+          "mean2": 39.98,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 5,
+          "group_col": "name",
+          "group1": "Aisha Patel",
+          "group2": "Mei Chen",
+          "cohens_d": 0.004,
+          "t_statistic": 0.023,
+          "p_value": 0.9818,
+          "mean1": 40.72,
+          "mean2": 40.68,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 6,
+          "group_col": "name",
+          "group1": "Aisha Patel",
+          "group2": "Mohammed Ali",
+          "cohens_d": 0.006,
+          "t_statistic": 0.035,
+          "p_value": 0.9723,
+          "mean1": 40.72,
+          "mean2": 40.67,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 7,
+          "group_col": "name",
+          "group1": "Aisha Patel",
+          "group2": "Olufemi Adebayo",
+          "cohens_d": 0.037,
+          "t_statistic": 0.205,
+          "p_value": 0.8382,
+          "mean1": 40.72,
+          "mean2": 40.43,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 8,
+          "group_col": "name",
+          "group1": "Aisha Patel",
+          "group2": "Wei Chen",
+          "cohens_d": 0.041,
+          "t_statistic": 0.223,
+          "p_value": 0.824,
+          "mean1": 40.72,
+          "mean2": 40.38,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 9,
+          "group_col": "name",
+          "group1": "Alex Morgan",
+          "group2": "Alice Brown",
+          "cohens_d": 0.041,
+          "t_statistic": 0.226,
+          "p_value": 0.8214,
+          "mean1": 40.15,
+          "mean2": 39.8,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 10,
+          "group_col": "name",
+          "group1": "Alex Morgan",
+          "group2": "Fatima Okafor",
+          "cohens_d": -0.057,
+          "t_statistic": -0.311,
+          "p_value": 0.7561,
+          "mean1": 40.15,
+          "mean2": 40.6,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 11,
+          "group_col": "name",
+          "group1": "Alex Morgan",
+          "group2": "James Brown",
+          "cohens_d": 0.07,
+          "t_statistic": 0.381,
+          "p_value": 0.7041,
+          "mean1": 40.15,
+          "mean2": 39.57,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 12,
+          "group_col": "name",
+          "group1": "Alex Morgan",
+          "group2": "Jamie Taylor",
+          "cohens_d": 0.02,
+          "t_statistic": 0.107,
+          "p_value": 0.9148,
+          "mean1": 40.15,
+          "mean2": 39.98,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 13,
+          "group_col": "name",
+          "group1": "Alex Morgan",
+          "group2": "Mei Chen",
+          "cohens_d": -0.066,
+          "t_statistic": -0.36,
+          "p_value": 0.7194,
+          "mean1": 40.15,
+          "mean2": 40.68,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 14,
+          "group_col": "name",
+          "group1": "Alex Morgan",
+          "group2": "Mohammed Ali",
+          "cohens_d": -0.064,
+          "t_statistic": -0.353,
+          "p_value": 0.7248,
+          "mean1": 40.15,
+          "mean2": 40.67,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 15,
+          "group_col": "name",
+          "group1": "Alex Morgan",
+          "group2": "Olufemi Adebayo",
+          "cohens_d": -0.037,
+          "t_statistic": -0.201,
+          "p_value": 0.8412,
+          "mean1": 40.15,
+          "mean2": 40.43,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 16,
+          "group_col": "name",
+          "group1": "Alex Morgan",
+          "group2": "Wei Chen",
+          "cohens_d": -0.028,
+          "t_statistic": -0.153,
+          "p_value": 0.8783,
+          "mean1": 40.15,
+          "mean2": 40.38,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 17,
+          "group_col": "name",
+          "group1": "Alice Brown",
+          "group2": "Fatima Okafor",
+          "cohens_d": -0.099,
+          "t_statistic": -0.543,
+          "p_value": 0.5882,
+          "mean1": 39.8,
+          "mean2": 40.6,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 18,
+          "group_col": "name",
+          "group1": "Alice Brown",
+          "group2": "James Brown",
+          "cohens_d": 0.027,
+          "t_statistic": 0.15,
+          "p_value": 0.8813,
+          "mean1": 39.8,
+          "mean2": 39.57,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 19,
+          "group_col": "name",
+          "group1": "Alice Brown",
+          "group2": "Jamie Taylor",
+          "cohens_d": -0.021,
+          "t_statistic": -0.116,
+          "p_value": 0.9079,
+          "mean1": 39.8,
+          "mean2": 39.98,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 20,
+          "group_col": "name",
+          "group1": "Alice Brown",
+          "group2": "Mei Chen",
+          "cohens_d": -0.107,
+          "t_statistic": -0.586,
+          "p_value": 0.5593,
+          "mean1": 39.8,
+          "mean2": 40.68,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 21,
+          "group_col": "name",
+          "group1": "Alice Brown",
+          "group2": "Mohammed Ali",
+          "cohens_d": -0.106,
+          "t_statistic": -0.581,
+          "p_value": 0.5624,
+          "mean1": 39.8,
+          "mean2": 40.67,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 22,
+          "group_col": "name",
+          "group1": "Alice Brown",
+          "group2": "Olufemi Adebayo",
+          "cohens_d": -0.08,
+          "t_statistic": -0.44,
+          "p_value": 0.6608,
+          "mean1": 39.8,
+          "mean2": 40.43,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 23,
+          "group_col": "name",
+          "group1": "Alice Brown",
+          "group2": "Wei Chen",
+          "cohens_d": -0.069,
+          "t_statistic": -0.377,
+          "p_value": 0.7067,
+          "mean1": 39.8,
+          "mean2": 40.38,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 24,
+          "group_col": "name",
+          "group1": "Fatima Okafor",
+          "group2": "James Brown",
+          "cohens_d": 0.129,
+          "t_statistic": 0.709,
+          "p_value": 0.4798,
+          "mean1": 40.6,
+          "mean2": 39.57,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 25,
+          "group_col": "name",
+          "group1": "Fatima Okafor",
+          "group2": "Jamie Taylor",
+          "cohens_d": 0.076,
+          "t_statistic": 0.416,
+          "p_value": 0.678,
+          "mean1": 40.6,
+          "mean2": 39.98,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 26,
+          "group_col": "name",
+          "group1": "Fatima Okafor",
+          "group2": "Mei Chen",
+          "cohens_d": -0.011,
+          "t_statistic": -0.059,
+          "p_value": 0.9528,
+          "mean1": 40.6,
+          "mean2": 40.68,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 27,
+          "group_col": "name",
+          "group1": "Fatima Okafor",
+          "group2": "Mohammed Ali",
+          "cohens_d": -0.009,
+          "t_statistic": -0.048,
+          "p_value": 0.9617,
+          "mean1": 40.6,
+          "mean2": 40.67,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 28,
+          "group_col": "name",
+          "group1": "Fatima Okafor",
+          "group2": "Olufemi Adebayo",
+          "cohens_d": 0.023,
+          "t_statistic": 0.125,
+          "p_value": 0.9005,
+          "mean1": 40.6,
+          "mean2": 40.43,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 29,
+          "group_col": "name",
+          "group1": "Fatima Okafor",
+          "group2": "Wei Chen",
+          "cohens_d": 0.027,
+          "t_statistic": 0.15,
+          "p_value": 0.881,
+          "mean1": 40.6,
+          "mean2": 40.38,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 30,
+          "group_col": "name",
+          "group1": "James Brown",
+          "group2": "Jamie Taylor",
+          "cohens_d": -0.049,
+          "t_statistic": -0.266,
+          "p_value": 0.7907,
+          "mean1": 39.57,
+          "mean2": 39.98,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 31,
+          "group_col": "name",
+          "group1": "James Brown",
+          "group2": "Mei Chen",
+          "cohens_d": -0.137,
+          "t_statistic": -0.748,
+          "p_value": 0.456,
+          "mean1": 39.57,
+          "mean2": 40.68,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 32,
+          "group_col": "name",
+          "group1": "James Brown",
+          "group2": "Mohammed Ali",
+          "cohens_d": -0.136,
+          "t_statistic": -0.745,
+          "p_value": 0.4577,
+          "mean1": 39.57,
+          "mean2": 40.67,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 33,
+          "group_col": "name",
+          "group1": "James Brown",
+          "group2": "Olufemi Adebayo",
+          "cohens_d": -0.111,
+          "t_statistic": -0.609,
+          "p_value": 0.5439,
+          "mean1": 39.57,
+          "mean2": 40.43,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 34,
+          "group_col": "name",
+          "group1": "James Brown",
+          "group2": "Wei Chen",
+          "cohens_d": -0.097,
+          "t_statistic": -0.533,
+          "p_value": 0.5949,
+          "mean1": 39.57,
+          "mean2": 40.38,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 35,
+          "group_col": "name",
+          "group1": "Jamie Taylor",
+          "group2": "Mei Chen",
+          "cohens_d": -0.084,
+          "t_statistic": -0.462,
+          "p_value": 0.6452,
+          "mean1": 39.98,
+          "mean2": 40.68,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 36,
+          "group_col": "name",
+          "group1": "Jamie Taylor",
+          "group2": "Mohammed Ali",
+          "cohens_d": -0.083,
+          "t_statistic": -0.456,
+          "p_value": 0.6495,
+          "mean1": 39.98,
+          "mean2": 40.67,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 37,
+          "group_col": "name",
+          "group1": "Jamie Taylor",
+          "group2": "Olufemi Adebayo",
+          "cohens_d": -0.057,
+          "t_statistic": -0.311,
+          "p_value": 0.7566,
+          "mean1": 39.98,
+          "mean2": 40.43,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 38,
+          "group_col": "name",
+          "group1": "Jamie Taylor",
+          "group2": "Wei Chen",
+          "cohens_d": -0.047,
+          "t_statistic": -0.257,
+          "p_value": 0.7974,
+          "mean1": 39.98,
+          "mean2": 40.38,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 39,
+          "group_col": "name",
+          "group1": "Mei Chen",
+          "group2": "Mohammed Ali",
+          "cohens_d": 0.002,
+          "t_statistic": 0.012,
+          "p_value": 0.9907,
+          "mean1": 40.68,
+          "mean2": 40.67,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 40,
+          "group_col": "name",
+          "group1": "Mei Chen",
+          "group2": "Olufemi Adebayo",
+          "cohens_d": 0.033,
+          "t_statistic": 0.183,
+          "p_value": 0.8553,
+          "mean1": 40.68,
+          "mean2": 40.43,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 41,
+          "group_col": "name",
+          "group1": "Mei Chen",
+          "group2": "Wei Chen",
+          "cohens_d": 0.037,
+          "t_statistic": 0.203,
+          "p_value": 0.8398,
+          "mean1": 40.68,
+          "mean2": 40.38,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 42,
+          "group_col": "name",
+          "group1": "Mohammed Ali",
+          "group2": "Olufemi Adebayo",
+          "cohens_d": 0.032,
+          "t_statistic": 0.173,
+          "p_value": 0.8631,
+          "mean1": 40.67,
+          "mean2": 40.43,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 43,
+          "group_col": "name",
+          "group1": "Mohammed Ali",
+          "group2": "Wei Chen",
+          "cohens_d": 0.035,
+          "t_statistic": 0.194,
+          "p_value": 0.8468,
+          "mean1": 40.67,
+          "mean2": 40.38,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        },
+        {
+          "index": 44,
+          "group_col": "name",
+          "group1": "Olufemi Adebayo",
+          "group2": "Wei Chen",
+          "cohens_d": 0.006,
+          "t_statistic": 0.035,
+          "p_value": 0.9718,
+          "mean1": 40.43,
+          "mean2": 40.38,
+          "n1": 60,
+          "n2": 60,
+          "p_holm": 1.0
+        }
+      ]
+    },
+    "university": {
+      "summary": [
+        {
+          "university": "Newcastle University",
+          "mean": 40.14,
+          "std": 8.4456652636,
+          "count": 150,
+          "ci_lower": 38.7773696069,
+          "ci_upper": 41.5026303931
+        },
+        {
+          "university": "University of Bristol",
+          "mean": 40.4133333333,
+          "std": 7.6203424914,
+          "count": 150,
+          "ci_lower": 39.1838611769,
+          "ci_upper": 41.6428054898
+        },
+        {
+          "university": "University of Oxford",
+          "mean": 40.1666666667,
+          "std": 8.3524835889,
+          "count": 150,
+          "ci_lower": 38.8190702796,
+          "ci_upper": 41.5142630538
+        },
+        {
+          "university": "University of South Wales",
+          "mean": 40.4733333333,
+          "std": 7.732695916,
+          "count": 150,
+          "ci_lower": 39.2257339854,
+          "ci_upper": 41.7209326813
+        }
+      ],
+      "pairwise": [
+        {
+          "index": 0,
+          "group_col": "university",
+          "group1": "Newcastle University",
+          "group2": "University of Bristol",
+          "cohens_d": -0.034,
+          "t_statistic": -0.294,
+          "p_value": 0.7687,
+          "mean1": 40.14,
+          "mean2": 40.41,
+          "n1": 150,
+          "n2": 150,
+          "p_holm": 1.0
+        },
+        {
+          "index": 1,
+          "group_col": "university",
+          "group1": "Newcastle University",
+          "group2": "University of Oxford",
+          "cohens_d": -0.003,
+          "t_statistic": -0.027,
+          "p_value": 0.9781,
+          "mean1": 40.14,
+          "mean2": 40.17,
+          "n1": 150,
+          "n2": 150,
+          "p_holm": 1.0
+        },
+        {
+          "index": 2,
+          "group_col": "university",
+          "group1": "Newcastle University",
+          "group2": "University of South Wales",
+          "cohens_d": -0.041,
+          "t_statistic": -0.357,
+          "p_value": 0.7217,
+          "mean1": 40.14,
+          "mean2": 40.47,
+          "n1": 150,
+          "n2": 150,
+          "p_holm": 1.0
+        },
+        {
+          "index": 3,
+          "group_col": "university",
+          "group1": "University of Bristol",
+          "group2": "University of Oxford",
+          "cohens_d": 0.031,
+          "t_statistic": 0.267,
+          "p_value": 0.7895,
+          "mean1": 40.41,
+          "mean2": 40.17,
+          "n1": 150,
+          "n2": 150,
+          "p_holm": 1.0
+        },
+        {
+          "index": 4,
+          "group_col": "university",
+          "group1": "University of Bristol",
+          "group2": "University of South Wales",
+          "cohens_d": -0.008,
+          "t_statistic": -0.068,
+          "p_value": 0.9461,
+          "mean1": 40.41,
+          "mean2": 40.47,
+          "n1": 150,
+          "n2": 150,
+          "p_holm": 1.0
+        },
+        {
+          "index": 5,
+          "group_col": "university",
+          "group1": "University of Oxford",
+          "group2": "University of South Wales",
+          "cohens_d": -0.038,
+          "t_statistic": -0.33,
+          "p_value": 0.7417,
+          "mean1": 40.17,
+          "mean2": 40.47,
+          "n1": 150,
+          "n2": 150,
+          "p_holm": 1.0
+        }
+      ]
+    },
+    "a_levels": {
+      "summary": [
+        {
+          "a_levels": "Mathematics (A), Economics (A), Physics (B)",
+          "mean": 40.08,
+          "std": 8.1803539627,
+          "count": 200,
+          "ci_lower": 38.9393446591,
+          "ci_upper": 41.2206553409
+        },
+        {
+          "a_levels": "Mathematics (A*), Further Mathematics (A*), Physics (A)",
+          "mean": 40.34,
+          "std": 8.32713069,
+          "count": 200,
+          "ci_lower": 39.1788783494,
+          "ci_upper": 41.5011216506
+        },
+        {
+          "a_levels": "Mathematics (B), Business Studies (B), Sociology (C)",
+          "mean": 40.475,
+          "std": 7.590616728,
+          "count": 200,
+          "ci_lower": 39.4165766664,
+          "ci_upper": 41.5334233336
+        }
+      ],
+      "pairwise": [
+        {
+          "index": 0,
+          "group_col": "a_levels",
+          "group1": "Mathematics (A), Economics (A), Physics (B)",
+          "group2": "Mathematics (A*), Further Mathematics (A*), Physics (A)",
+          "cohens_d": -0.031,
+          "t_statistic": -0.315,
+          "p_value": 0.7529,
+          "mean1": 40.08,
+          "mean2": 40.34,
+          "n1": 200,
+          "n2": 200,
+          "p_holm": 1.0
+        },
+        {
+          "index": 1,
+          "group_col": "a_levels",
+          "group1": "Mathematics (A), Economics (A), Physics (B)",
+          "group2": "Mathematics (B), Business Studies (B), Sociology (C)",
+          "cohens_d": -0.05,
+          "t_statistic": -0.501,
+          "p_value": 0.617,
+          "mean1": 40.08,
+          "mean2": 40.48,
+          "n1": 200,
+          "n2": 200,
+          "p_holm": 1.0
+        },
+        {
+          "index": 2,
+          "group_col": "a_levels",
+          "group1": "Mathematics (A*), Further Mathematics (A*), Physics (A)",
+          "group2": "Mathematics (B), Business Studies (B), Sociology (C)",
+          "cohens_d": -0.017,
+          "t_statistic": -0.169,
+          "p_value": 0.8655,
+          "mean1": 40.34,
+          "mean2": 40.48,
+          "n1": 200,
+          "n2": 200,
+          "p_holm": 1.0
+        }
+      ]
+    },
+    "template_name": {
+      "summary": [
+        {
+          "template_name": "template_a",
+          "mean": 41.9833333333,
+          "std": 0.5497644008,
+          "count": 120,
+          "ci_lower": 41.8839592609,
+          "ci_upper": 42.0827074058
+        },
+        {
+          "template_name": "template_b",
+          "mean": 44.5416666667,
+          "std": 0.5003500175,
+          "count": 120,
+          "ci_lower": 44.4512246176,
+          "ci_upper": 44.6321087157
+        },
+        {
+          "template_name": "template_c",
+          "mean": 44.1,
+          "std": 0.7492292959,
+          "count": 120,
+          "ci_lower": 43.9645711395,
+          "ci_upper": 44.2354288605
+        },
+        {
+          "template_name": "template_d",
+          "mean": 24.6166666667,
+          "std": 1.8660313044,
+          "count": 120,
+          "ci_lower": 24.2793673986,
+          "ci_upper": 24.9539659348
+        },
+        {
+          "template_name": "template_e",
+          "mean": 46.25,
+          "std": 0.6767445554,
+          "count": 120,
+          "ci_lower": 46.1276733045,
+          "ci_upper": 46.3723266955
+        }
+      ],
+      "pairwise": [
+        {
+          "index": 0,
+          "group_col": "template_name",
+          "group1": "template_a",
+          "group2": "template_b",
+          "cohens_d": -4.867,
+          "t_statistic": -37.7,
+          "p_value": 0.0,
+          "mean1": 41.98,
+          "mean2": 44.54,
+          "n1": 120,
+          "n2": 120,
+          "p_holm": 0.0
+        },
+        {
+          "index": 1,
+          "group_col": "template_name",
+          "group1": "template_a",
+          "group2": "template_c",
+          "cohens_d": -3.221,
+          "t_statistic": -24.951,
+          "p_value": 0.0,
+          "mean1": 41.98,
+          "mean2": 44.1,
+          "n1": 120,
+          "n2": 120,
+          "p_holm": 0.0
+        },
+        {
+          "index": 2,
+          "group_col": "template_name",
+          "group1": "template_a",
+          "group2": "template_d",
+          "cohens_d": 12.625,
+          "t_statistic": 97.794,
+          "p_value": 0.0,
+          "mean1": 41.98,
+          "mean2": 24.62,
+          "n1": 120,
+          "n2": 120,
+          "p_holm": 0.0
+        },
+        {
+          "index": 3,
+          "group_col": "template_name",
+          "group1": "template_a",
+          "group2": "template_e",
+          "cohens_d": -6.92,
+          "t_statistic": -53.605,
+          "p_value": 0.0,
+          "mean1": 41.98,
+          "mean2": 46.25,
+          "n1": 120,
+          "n2": 120,
+          "p_holm": 0.0
+        },
+        {
+          "index": 4,
+          "group_col": "template_name",
+          "group1": "template_b",
+          "group2": "template_c",
+          "cohens_d": 0.693,
+          "t_statistic": 5.37,
+          "p_value": 0.0,
+          "mean1": 44.54,
+          "mean2": 44.1,
+          "n1": 120,
+          "n2": 120,
+          "p_holm": 0.0
+        },
+        {
+          "index": 5,
+          "group_col": "template_name",
+          "group1": "template_b",
+          "group2": "template_d",
+          "cohens_d": 14.585,
+          "t_statistic": 112.978,
+          "p_value": 0.0,
+          "mean1": 44.54,
+          "mean2": 24.62,
+          "n1": 120,
+          "n2": 120,
+          "p_holm": 0.0
+        },
+        {
+          "index": 6,
+          "group_col": "template_name",
+          "group1": "template_b",
+          "group2": "template_e",
+          "cohens_d": -2.871,
+          "t_statistic": -22.235,
+          "p_value": 0.0,
+          "mean1": 44.54,
+          "mean2": 46.25,
+          "n1": 120,
+          "n2": 120,
+          "p_holm": 0.0
+        },
+        {
+          "index": 7,
+          "group_col": "template_name",
+          "group1": "template_c",
+          "group2": "template_d",
+          "cohens_d": 13.703,
+          "t_statistic": 106.14,
+          "p_value": 0.0,
+          "mean1": 44.1,
+          "mean2": 24.62,
+          "n1": 120,
+          "n2": 120,
+          "p_holm": 0.0
+        },
+        {
+          "index": 8,
+          "group_col": "template_name",
+          "group1": "template_c",
+          "group2": "template_e",
+          "cohens_d": -3.012,
+          "t_statistic": -23.328,
+          "p_value": 0.0,
+          "mean1": 44.1,
+          "mean2": 46.25,
+          "n1": 120,
+          "n2": 120,
+          "p_holm": 0.0
+        },
+        {
+          "index": 9,
+          "group_col": "template_name",
+          "group1": "template_d",
+          "group2": "template_e",
+          "cohens_d": -15.413,
+          "t_statistic": -119.389,
+          "p_value": 0.0,
+          "mean1": 24.62,
+          "mean2": 46.25,
+          "n1": 120,
+          "n2": 120,
+          "p_holm": 0.0
+        }
+      ]
+    },
+    "name_gender": {
+      "summary": [
+        {
+          "name_gender": "ambiguous",
+          "mean": 40.0666666667,
+          "std": 8.4830362938,
+          "count": 120,
+          "ci_lower": 38.5332937129,
+          "ci_upper": 41.6000396205
+        },
+        {
+          "name_gender": "female",
+          "mean": 40.45,
+          "std": 7.981516304,
+          "count": 240,
+          "ci_lower": 39.4350780341,
+          "ci_upper": 41.4649219659
+        },
+        {
+          "name_gender": "male",
+          "mean": 40.2625,
+          "std": 7.868283481,
+          "count": 240,
+          "ci_lower": 39.2619766114,
+          "ci_upper": 41.2630233886
+        }
+      ],
+      "pairwise": [
+        {
+          "index": 0,
+          "group_col": "name_gender",
+          "group1": "ambiguous",
+          "group2": "female",
+          "cohens_d": -0.047,
+          "t_statistic": -0.412,
+          "p_value": 0.6806,
+          "mean1": 40.07,
+          "mean2": 40.45,
+          "n1": 120,
+          "n2": 240,
+          "p_holm": 1.0
+        },
+        {
+          "index": 1,
+          "group_col": "name_gender",
+          "group1": "ambiguous",
+          "group2": "male",
+          "cohens_d": -0.024,
+          "t_statistic": -0.211,
+          "p_value": 0.8327,
+          "mean1": 40.07,
+          "mean2": 40.26,
+          "n1": 120,
+          "n2": 240,
+          "p_holm": 1.0
+        },
+        {
+          "index": 2,
+          "group_col": "name_gender",
+          "group1": "female",
+          "group2": "male",
+          "cohens_d": 0.024,
+          "t_statistic": 0.259,
+          "p_value": 0.7956,
+          "mean1": 40.45,
+          "mean2": 40.26,
+          "n1": 240,
+          "n2": 240,
+          "p_holm": 1.0
+        }
+      ]
+    },
+    "name_ethnicity": {
+      "summary": [
+        {
+          "name_ethnicity": "black-african",
+          "mean": 40.5166666667,
+          "std": 7.2517553173,
+          "count": 120,
+          "ci_lower": 39.2058570596,
+          "ci_upper": 41.8274762738
+        },
+        {
+          "name_ethnicity": "east-asian",
+          "mean": 40.5333333333,
+          "std": 8.0762472912,
+          "count": 120,
+          "ci_lower": 39.0734905677,
+          "ci_upper": 41.993176099
+        },
+        {
+          "name_ethnicity": "south-asian",
+          "mean": 40.6916666667,
+          "std": 7.8481340001,
+          "count": 120,
+          "ci_lower": 39.2730571032,
+          "ci_upper": 42.1102762301
+        },
+        {
+          "name_ethnicity": "white-british",
+          "mean": 39.875,
+          "std": 8.4769562115,
+          "count": 240,
+          "ci_lower": 38.7970783702,
+          "ci_upper": 40.9529216298
+        }
+      ],
+      "pairwise": [
+        {
+          "index": 0,
+          "group_col": "name_ethnicity",
+          "group1": "black-african",
+          "group2": "east-asian",
+          "cohens_d": -0.002,
+          "t_statistic": -0.017,
+          "p_value": 0.9866,
+          "mean1": 40.52,
+          "mean2": 40.53,
+          "n1": 120,
+          "n2": 120,
+          "p_holm": 1.0
+        },
+        {
+          "index": 1,
+          "group_col": "name_ethnicity",
+          "group1": "black-african",
+          "group2": "south-asian",
+          "cohens_d": -0.023,
+          "t_statistic": -0.179,
+          "p_value": 0.8578,
+          "mean1": 40.52,
+          "mean2": 40.69,
+          "n1": 120,
+          "n2": 120,
+          "p_holm": 1.0
+        },
+        {
+          "index": 2,
+          "group_col": "name_ethnicity",
+          "group1": "black-african",
+          "group2": "white-british",
+          "cohens_d": 0.079,
+          "t_statistic": 0.747,
+          "p_value": 0.4556,
+          "mean1": 40.52,
+          "mean2": 39.88,
+          "n1": 120,
+          "n2": 240,
+          "p_holm": 1.0
+        },
+        {
+          "index": 3,
+          "group_col": "name_ethnicity",
+          "group1": "east-asian",
+          "group2": "south-asian",
+          "cohens_d": -0.02,
+          "t_statistic": -0.154,
+          "p_value": 0.8777,
+          "mean1": 40.53,
+          "mean2": 40.69,
+          "n1": 120,
+          "n2": 120,
+          "p_holm": 1.0
+        },
+        {
+          "index": 4,
+          "group_col": "name_ethnicity",
+          "group1": "east-asian",
+          "group2": "white-british",
+          "cohens_d": 0.079,
+          "t_statistic": 0.717,
+          "p_value": 0.474,
+          "mean1": 40.53,
+          "mean2": 39.88,
+          "n1": 120,
+          "n2": 240,
+          "p_holm": 1.0
+        },
+        {
+          "index": 5,
+          "group_col": "name_ethnicity",
+          "group1": "south-asian",
+          "group2": "white-british",
+          "cohens_d": 0.099,
+          "t_statistic": 0.906,
+          "p_value": 0.3658,
+          "mean1": 40.69,
+          "mean2": 39.88,
+          "n1": 120,
+          "n2": 240,
+          "p_holm": 1.0
+        }
+      ]
+    },
+    "university_prestige": {
+      "summary": [
+        {
+          "university_prestige": "high",
+          "mean": 40.1666666667,
+          "std": 8.3524835889,
+          "count": 150,
+          "ci_lower": 38.8190702796,
+          "ci_upper": 41.5142630538
+        },
+        {
+          "university_prestige": "low",
+          "mean": 40.3066666667,
+          "std": 8.0852040153,
+          "count": 300,
+          "ci_lower": 39.3880381373,
+          "ci_upper": 41.2252951961
+        },
+        {
+          "university_prestige": "medium",
+          "mean": 40.4133333333,
+          "std": 7.6203424914,
+          "count": 150,
+          "ci_lower": 39.1838611769,
+          "ci_upper": 41.6428054898
+        }
+      ],
+      "pairwise": [
+        {
+          "index": 0,
+          "group_col": "university_prestige",
+          "group1": "high",
+          "group2": "low",
+          "cohens_d": -0.017,
+          "t_statistic": -0.169,
+          "p_value": 0.8656,
+          "mean1": 40.17,
+          "mean2": 40.31,
+          "n1": 150,
+          "n2": 300,
+          "p_holm": 1.0
+        },
+        {
+          "index": 1,
+          "group_col": "university_prestige",
+          "group1": "high",
+          "group2": "medium",
+          "cohens_d": -0.031,
+          "t_statistic": -0.267,
+          "p_value": 0.7895,
+          "mean1": 40.17,
+          "mean2": 40.41,
+          "n1": 150,
+          "n2": 150,
+          "p_holm": 1.0
+        },
+        {
+          "index": 2,
+          "group_col": "university_prestige",
+          "group1": "low",
+          "group2": "medium",
+          "cohens_d": -0.013,
+          "t_statistic": -0.137,
+          "p_value": 0.891,
+          "mean1": 40.31,
+          "mean2": 40.41,
+          "n1": 300,
+          "n2": 150,
+          "p_holm": 1.0
+        }
+      ]
+    },
+    "a_level_quality": {
+      "summary": [
+        {
+          "a_level_quality": "high",
+          "mean": 40.34,
+          "std": 8.32713069,
+          "count": 200,
+          "ci_lower": 39.1788783494,
+          "ci_upper": 41.5011216506
+        },
+        {
+          "a_level_quality": "low",
+          "mean": 40.475,
+          "std": 7.590616728,
+          "count": 200,
+          "ci_lower": 39.4165766664,
+          "ci_upper": 41.5334233336
+        },
+        {
+          "a_level_quality": "medium",
+          "mean": 40.08,
+          "std": 8.1803539627,
+          "count": 200,
+          "ci_lower": 38.9393446591,
+          "ci_upper": 41.2206553409
+        }
+      ],
+      "pairwise": [
+        {
+          "index": 0,
+          "group_col": "a_level_quality",
+          "group1": "high",
+          "group2": "low",
+          "cohens_d": -0.017,
+          "t_statistic": -0.169,
+          "p_value": 0.8655,
+          "mean1": 40.34,
+          "mean2": 40.48,
+          "n1": 200,
+          "n2": 200,
+          "p_holm": 1.0
+        },
+        {
+          "index": 1,
+          "group_col": "a_level_quality",
+          "group1": "high",
+          "group2": "medium",
+          "cohens_d": 0.031,
+          "t_statistic": 0.315,
+          "p_value": 0.7529,
+          "mean1": 40.34,
+          "mean2": 40.08,
+          "n1": 200,
+          "n2": 200,
+          "p_holm": 1.0
+        },
+        {
+          "index": 2,
+          "group_col": "a_level_quality",
+          "group1": "low",
+          "group2": "medium",
+          "cohens_d": 0.05,
+          "t_statistic": 0.501,
+          "p_value": 0.617,
+          "mean1": 40.48,
+          "mean2": 40.08,
+          "n1": 200,
+          "n2": 200,
+          "p_holm": 1.0
+        }
+      ]
+    }
+  },
+  "variance_breakdown": {
+    "name": {
+      "variance_explained": 0.1480249999999995,
+      "proportion": 0.002301049905566224
+    },
+    "university": {
+      "variance_explained": 0.021563888888889295,
+      "proportion": 0.000335210839327272
+    },
+    "a_levels": {
+      "variance_explained": 0.026872222222222734,
+      "proportion": 0.0004177289269164021
+    },
+    "template_name": {
+      "variance_explained": 63.32695555555556,
+      "proportion": 0.9844180719534409
+    },
+    "name_gender": {
+      "variance_explained": 0.020448611111111067,
+      "proportion": 0.0003178738366234266
+    },
+    "name_ethnicity": {
+      "variance_explained": 0.12320555555555582,
+      "proportion": 0.001915231426964005
+    },
+    "university_prestige": {
+      "variance_explained": 0.007675000000000178,
+      "proportion": 0.00011930794139652924
+    },
+    "a_level_quality": {
+      "variance_explained": 0.026872222222222734,
+      "proportion": 0.0004177289269164021
+    }
+  },
+  "per_cv_variance": {}
+}

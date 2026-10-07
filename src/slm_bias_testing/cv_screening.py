@@ -46,6 +46,7 @@ from slm_bias_testing.analysis import (
     variance_breakdown,
 )
 from slm_bias_testing.call_api import DEFAULT_KEEP_ALIVE, DEFAULT_NUM_CTX, Model
+from slm_bias_testing.decision_instrument import decision_base_frame
 from slm_bias_testing.io import atomic_write_json, atomic_write_text
 
 logger = logging.getLogger(__name__)
@@ -399,6 +400,7 @@ def run_cv_screening(
     temperature: float = DEFAULT_TEMPERATURE,
     model_factory: Callable[..., Any] | None = None,
     pool_client: Any | None = None,
+    api: str = "chat",
 ) -> pd.DataFrame:
     """Run CV screening benchmark for a single model.
 
@@ -413,6 +415,7 @@ def run_cv_screening(
         concurrency: Number of concurrent prediction threads (default 1).
             Set OLLAMA_NUM_PARALLEL on the server to match this value.
         temperature: Sampling temperature recorded in the results provenance
+            (ignored by ``systemone`` — recorded as None there)
         model_factory: Optional ``(**kwargs) -> model`` override for tests;
             defaults to constructing :class:`Model` for ``model_name``.
         pool_client: Optional ``OllamaPoolClient``. When given, all attempts
@@ -420,10 +423,17 @@ def run_cv_screening(
             Ollama lifecycle); when None the model is called directly via
             ``Model.predict`` (sequential or threaded), so benchmarks also run
             without Node.js.
+        api: ``"chat"`` (default) for generative models via ``Model.predict``;
+            ``"systemone"`` for decision models via ``SystemOneClient`` —
+            sequential only, never with ``pool_client``.
 
     Returns:
         DataFrame with all scored records (including ones from previous runs).
     """
+    if api not in ("chat", "systemone"):
+        raise ValueError(f"unsupported api {api!r}: expected 'chat' or 'systemone'")
+    if api == "systemone" and pool_client is not None:
+        raise ValueError("the Node pool is chat-only; systemone models must run sequentially")
     if cv_data is None:
         from slm_bias_testing.data.cvs import cvs as default_cvs
 
@@ -443,10 +453,14 @@ def run_cv_screening(
         seen_set = set(zip(existing_df["key"], existing_df["run"], strict=True))
     seen_set |= _load_checkpoint(output_dir)
 
-    base_prompt = build_base_prompt(job_desc)
+    base_prompt = build_base_prompt(job_desc) if api == "chat" else decision_base_frame()
     prompt_sha256 = sha256_hash(base_prompt)
 
     def default_factory(**kwargs: Any) -> Any:
+        if api == "systemone":
+            from slm_bias_testing.decision_models import SystemOneClient
+
+            return SystemOneClient(model_name)
         return Model(model_name=model_name, **kwargs)
 
     factory = model_factory or default_factory
@@ -454,8 +468,11 @@ def run_cv_screening(
     if pool_client is None:
         logger.info("Starting Model: %s", model_name)
         warmup_model = factory()
-        logger.info("Testing Model...")
-        logger.info("Test response: %s", warmup_model.predict("Say 'ready' and nothing else."))
+        if api == "systemone":
+            logger.info("systemone model %s — deterministic, no chat warmup", model_name)
+        else:
+            logger.info("Testing Model...")
+            logger.info("Test response: %s", warmup_model.predict("Say 'ready' and nothing else."))
 
     records: list[dict[str, Any]] = []
     status_counts: Counter[str] = Counter()
@@ -567,9 +584,10 @@ def run_cv_screening(
     provenance = {
         "model": model_name,
         "package_version": package_version,
+        "api": api,
         "n_runs": int(n_runs),
         "max_samples": int(max_samples) if max_samples is not None else None,
-        "temperature": float(temperature),
+        "temperature": None if api == "systemone" else float(temperature),
         "num_ctx": (int(pool_client.num_ctx) if pool_client is not None else int(DEFAULT_NUM_CTX)),
         "keep_alive": (
             float(pool_client.keep_alive) if pool_client is not None else float(DEFAULT_KEEP_ALIVE)

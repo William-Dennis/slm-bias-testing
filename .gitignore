@@ -1,10 +1,10 @@
-# Experiment results
-results/
-records.csv
+# Experiment results — committed under results/{model}/{benchmark}/
+# (root-level strays only, so nested records.csv and plots/ are tracked)
+/records.csv
+/plots
 
 # Generated figures
 # figs/ is committed — it holds the README result charts
-plots/
 
 # IDE
 .idea/

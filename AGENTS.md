@@ -31,11 +31,11 @@ src/slm_bias_testing/
 ├── benchmark_runner.py  # Core runner with pool lifecycle, model iteration
 ├── call_api.py          # Sequential Model.predict client (pool fallback)
 ├── cv_screening.py      # CV screening benchmark (pooled or sequential)
-├── decision_models.py   # /v1/systemone client + typed-answer shaping
+├── decision_models.py   # /v1/systemone client + SystemOneClient adapter
 ├── io.py                # Atomic write helpers
 ├── model_clients.py     # OllamaPoolClient (Node.js pool subprocess)
 ├── ollama_setup.py      # Ollama server lifecycle + liveness probe
-├── registry.py          # Model registry (read-only, TypedDict metadata)
+├── registry.py          # Model registry (read-only; api: chat|systemone)
 ├── temporal.py          # Temporal bias trend analysis + plotting
 ├── visualisations.py    # Result charts
 ├── data/                # Packaged CV corpus, templates, job description
