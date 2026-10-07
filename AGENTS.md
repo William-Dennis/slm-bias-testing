@@ -31,6 +31,7 @@ src/slm_bias_testing/
 ├── benchmark_runner.py  # Core runner with pool lifecycle, model iteration
 ├── call_api.py          # Sequential Model.predict client (pool fallback)
 ├── cv_screening.py      # CV screening benchmark (pooled or sequential)
+├── decision_models.py   # /v1/systemone client + typed-answer shaping
 ├── io.py                # Atomic write helpers
 ├── model_clients.py     # OllamaPoolClient (Node.js pool subprocess)
 ├── ollama_setup.py      # Ollama server lifecycle + liveness probe
@@ -51,6 +52,7 @@ scripts/
 
 docs/
 ├── cv-screening-methodology.md  # Design, scoring, statistics, limitations
+├── decision-models.md           # /v1/systemone spike: latency, fit, output shapes
 ├── model-selection.md           # Leaderboard-grounded model choices + shortlist
 └── ollama-pool-manager.md       # Pool design spec (implemented in #32)
 ```
