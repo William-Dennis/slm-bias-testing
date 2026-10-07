@@ -30,13 +30,24 @@ def collapse_runs(
     Returns a frame with one row per ``key``: the mean score plus the first
     value of each requested group column. Falls back to the input frame
     unchanged when there is no key column (rows are already independent) or
-    when grouping by the key itself.
+    when grouping by the key itself. Rows with a null key cannot be grouped
+    by pandas (``groupby`` drops them), so each is treated as its own
+    singleton CV and a warning is logged — no scored row is ever dropped.
     """
     if df.empty or score_col not in df.columns or key_col not in df.columns:
         return df
     keep = [c for c in group_cols if c in df.columns and c != key_col]
     if not keep:
         return df
+    if df[key_col].isna().any():
+        logger.warning(
+            "%d row(s) have a null %s; treating each as its own singleton CV",
+            int(df[key_col].isna().sum()),
+            key_col,
+        )
+        df = df.copy()
+        null_mask = df[key_col].isna()
+        df.loc[null_mask, key_col] = [f"__null_{i}" for i in df.index[null_mask]]
     agg: dict[str, str] = {score_col: "mean"}
     agg.update({col: "first" for col in keep})
     return df.groupby(key_col, sort=True).agg(agg).reset_index(drop=True)
@@ -109,7 +120,9 @@ def pairwise_comparisons(
     ``group1 < group2``, making the sign stable across runs. Repeated runs
     are collapsed to per-CV means first (see :func:`collapse_runs`), and
     ``p_holm`` holds Holm-Bonferroni adjusted p-values across every pair
-    tested here (``p_value`` stays the raw Welch p).
+    with a defined test (undefined Welch tests — NaN p — are excluded from
+    the correction and reported as null ``p_holm``); ``p_value`` stays the
+    raw Welch p.
     """
     if group_col not in df.columns:
         return pd.DataFrame()
@@ -143,18 +156,23 @@ def pairwise_comparisons(
                 }
             )
 
-    n_pairs = len(rows)
-    order = sorted(range(n_pairs), key=lambda idx: rows[idx]["p_value"])
+    # Holm-Bonferroni over the finite (defined) tests only: an undefined
+    # Welch test (NaN p, e.g. two identical constant groups) must not poison
+    # the running maximum for every other pair.
+    finite = [
+        (idx, rows[idx]["p_value"])
+        for idx in range(len(rows))
+        if not np.isnan(rows[idx]["p_value"])
+    ]
+    n_finite = len(finite)
     running = 0.0
-    adjusted = [0.0] * n_pairs
-    for rank, idx in enumerate(order):
-        p_value = rows[idx]["p_value"]
-        candidate = 1.0 if np.isnan(p_value) else min(1.0, (n_pairs - rank) * p_value)
-        running = max(running, candidate)
+    adjusted: dict[int, float] = {}
+    for rank, (idx, p_value) in enumerate(sorted(finite, key=lambda item: item[1])):
+        running = max(running, min(1.0, (n_finite - rank) * p_value))
         adjusted[idx] = running
     for idx, row in enumerate(rows):
         row["p_value"] = round(row["p_value"], 4)
-        row["p_holm"] = round(adjusted[idx], 4)
+        row["p_holm"] = round(adjusted[idx], 4) if idx in adjusted else float("nan")
     return pd.DataFrame(rows)
 
 

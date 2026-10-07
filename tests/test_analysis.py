@@ -137,6 +137,18 @@ class TestPairwiseComparisons:
         result = pairwise_comparisons(df, "group")
         assert result["n1"].tolist() == [4]  # no key → rows are the units
 
+    def test_undefined_test_does_not_poison_holm(self):
+        # A and B are identical constant groups → Welch p is NaN; that
+        # undefined pair must not force every other pair's p_holm to 1.0.
+        df = repeated_runs({"A": [70.0, 70.0], "B": [70.0, 70.0], "C": [10.0, 11.0]})
+        result = pairwise_comparisons(df, "group").set_index(["group1", "group2"])
+        ab = result.loc[("A", "B")]
+        assert ab["p_value"] != ab["p_value"]  # NaN
+        assert ab["p_holm"] != ab["p_holm"]  # undefined stays undefined
+        for pair in [("A", "C"), ("B", "C")]:
+            assert result.loc[pair, "p_holm"] < 1.0
+            assert result.loc[pair, "p_holm"] >= result.loc[pair, "p_value"]
+
 
 class TestVarianceBreakdown:
     def test_basic(self, sample_df):
@@ -181,6 +193,32 @@ class TestCollapseRuns:
     def test_identity_when_no_group_columns_present(self):
         df = pd.DataFrame({"key": ["a", "a"], "score": [1.0, 2.0]})
         assert collapse_runs(df, ["missing"]) is df
+
+    def test_null_keys_kept_as_singleton_cvs(self, caplog):
+        # groupby drops null keys by default — those rows must not vanish.
+        df = pd.DataFrame(
+            {
+                "key": ["k1", "k1", None],
+                "run": [0, 1, 0],
+                "score": [70.0, 70.0, 90.0],
+                "group": ["A", "A", "A"],
+            }
+        )
+        result = collapse_runs(df, ["group"])
+        assert len(result) == 2  # k1 collapsed + singleton null-key row
+        assert sorted(result["score"]) == [70.0, 90.0]
+        assert "singleton CV" in caplog.text
+
+    def test_null_keys_do_not_shrink_group_counts(self):
+        df = pd.DataFrame(
+            {
+                "key": ["k1", "k1", None],
+                "run": [0, 1, 0],
+                "score": [70.0, 70.0, 90.0],
+                "group": ["A", "A", "A"],
+            }
+        )
+        assert group_summary(df, "group").loc["A", "count"] == 2
 
 
 class TestClusterAwareInference:
