@@ -5,7 +5,7 @@ import re
 
 import pytest
 
-from slm_bias_testing.benchmark import (
+from slm_bias_testing.cv_screening import (
     STATUS_API_ERROR,
     STATUS_OK,
     STATUS_PARSE_ERROR,
@@ -14,7 +14,7 @@ from slm_bias_testing.benchmark import (
     cv_prompt,
     parse_score,
     process_cv_run,
-    run_benchmark,
+    run_cv_screening,
     sha256_hash,
     stratified_sample,
 )
@@ -187,7 +187,7 @@ class TestAttempt:
 class TestRunBenchmark:
     def _run(self, output_dir, cv_data, factory, **kwargs):
         model_factory, model = factory()
-        df = run_benchmark(
+        df = run_cv_screening(
             model_name="mock-model",
             output_dir=str(output_dir),
             cv_data=cv_data,
@@ -295,3 +295,92 @@ class TestRunBenchmark:
             "n_records_total": 0,
         }
         assert payload["provenance"]["prompt_sha256"]
+
+
+class FakePool:
+    """PoolClientProtocol double: routes prompts through an optional responder."""
+
+    batch_size = 8
+    num_ctx = 512
+    keep_alive = 9.0
+
+    def __init__(self, responder=None):
+        self.responder = responder
+        self.job_ids: list[str] = []
+
+    def predict_batch(self, jobs):
+        results = {}
+        for job in jobs:
+            self.job_ids.append(job["id"])
+            if self.responder is None:
+                results[job["id"]] = {
+                    "response": default_responder(job["prompt"]),
+                    "error": None,
+                }
+            else:
+                results[job["id"]] = self.responder(job)
+        return results
+
+    def close(self) -> None:
+        return None
+
+
+class TestRunCvScreeningPool:
+    """run_cv_screening dispatches to the Node.js pool with sequential-equivalent semantics."""
+
+    def _run(self, output_dir, cv_data, pool, **kwargs):
+        return run_cv_screening(
+            model_name="mock-model",
+            output_dir=str(output_dir),
+            cv_data=cv_data,
+            job_desc=JOB_DESC,
+            pool_client=pool,
+            **kwargs,
+        )
+
+    def test_pool_run_scores_every_attempt(self, tmp_path, small_cvs):
+        pool = FakePool()
+        df = self._run(tmp_path, small_cvs, pool, n_runs=2)
+
+        assert len(df) == 64
+        assert len(pool.job_ids) == 64
+        assert (tmp_path / "records.csv").exists()
+        assert not (tmp_path / "records_checkpoint.jsonl").exists()
+
+        payload = json.loads((tmp_path / "cv-screening.json").read_text())
+        assert payload["attrition"]["n_planned"] == 64
+        assert payload["attrition"]["n_scored"] == 64
+        assert payload["provenance"]["num_ctx"] == 512
+        assert payload["provenance"]["keep_alive"] == 9.0
+
+    def test_pool_keeps_raw_response(self, tmp_path, small_cvs):
+        df = self._run(tmp_path, small_cvs, FakePool(), n_runs=1)
+        assert "response" in df.columns
+        assert df["response"].str.contains("/100").all()
+
+    def test_pool_resume_skips_completed(self, tmp_path, small_cvs):
+        self._run(tmp_path, small_cvs, FakePool(), n_runs=2)
+        resumed = FakePool()
+        df = self._run(tmp_path, small_cvs, resumed, n_runs=2)
+        assert resumed.job_ids == []
+        assert len(df) == 64
+
+    def test_pool_errors_not_marked_seen(self, tmp_path, small_cvs):
+        pool = FakePool(lambda job: {"response": None, "error": "boom"})
+        df = self._run(tmp_path, small_cvs, pool, n_runs=1)
+        assert df.empty
+
+        payload = json.loads((tmp_path / "cv-screening.json").read_text())
+        assert payload["attrition"]["n_api_errors_this_invocation"] == 32
+        assert payload["attrition"]["n_outstanding"] == 32
+
+    def test_pool_parse_failures_retry_next_invocation(self, tmp_path, small_cvs):
+        df = self._run(
+            tmp_path, small_cvs, FakePool(lambda job: {"response": "nope", "error": None}), n_runs=1
+        )
+        assert df.empty
+
+        retry = FakePool()
+        df = self._run(tmp_path, small_cvs, retry, n_runs=1)
+        assert len(retry.job_ids) == 32  # failures were not marked seen
+        assert len(df) == 32

@@ -1,4 +1,4 @@
-"""Core CV screening benchmark logic.
+"""Core CV screening benchmark logic — pooled or sequential.
 
 The CV screening benchmark is the in-house benchmark: it scores synthetic CVs
 from a full-factorial design (name gender x ethnicity x university prestige x
@@ -393,7 +393,7 @@ def _jsonify(value: Any) -> Any:
     return json.loads(json.dumps(value, default=float))
 
 
-def run_benchmark(
+def run_cv_screening(
     model_name: str,
     output_dir: str = "results",
     cv_data: list[dict[str, Any]] | None = None,
@@ -403,6 +403,7 @@ def run_benchmark(
     concurrency: int = 1,
     temperature: float = DEFAULT_TEMPERATURE,
     model_factory: Callable[..., Any] | None = None,
+    pool_client: Any | None = None,
 ) -> pd.DataFrame:
     """Run CV screening benchmark for a single model.
 
@@ -419,6 +420,11 @@ def run_benchmark(
         temperature: Sampling temperature recorded in the results provenance
         model_factory: Optional ``(**kwargs) -> model`` override for tests;
             defaults to constructing :class:`Model` for ``model_name``.
+        pool_client: Optional ``OllamaPoolClient``. When given, all attempts
+            are dispatched to the Node.js worker pool in batches (pool manages
+            Ollama lifecycle); when None the model is called directly via
+            ``Model.predict`` (sequential or threaded), so benchmarks also run
+            without Node.js.
 
     Returns:
         DataFrame with all scored records (including ones from previous runs).
@@ -426,7 +432,7 @@ def run_benchmark(
     if cv_data is None:
         from slm_bias_testing.data.cvs import cvs as default_cvs
 
-        cv_data = default_cvs
+        cv_data = list(default_cvs)
     if job_desc is None:
         from slm_bias_testing.data.job_description import job_description as job_desc
 
@@ -450,16 +456,28 @@ def run_benchmark(
 
     factory = model_factory or default_factory
 
-    logger.info("Starting Model: %s", model_name)
-    warmup_model = factory()
-    logger.info("Testing Model...")
-    logger.info("Test response: %s", warmup_model.predict("Say 'ready' and nothing else."))
+    if pool_client is None:
+        logger.info("Starting Model: %s", model_name)
+        warmup_model = factory()
+        logger.info("Testing Model...")
+        logger.info("Test response: %s", warmup_model.predict("Say 'ready' and nothing else."))
 
     records: list[dict[str, Any]] = []
     status_counts: Counter[str] = Counter()
     seen_lock = threading.Lock()
 
-    if concurrency <= 1:
+    if pool_client is not None:
+        records, status_counts = _run_pool_batched(
+            pool_client,
+            cv_data,
+            base_prompt,
+            n_runs,
+            seen_set,
+            seen_lock,
+            temperature,
+            output_dir,
+        )
+    elif concurrency <= 1:
         for cv in tqdm(cv_data, desc="CVs"):
             for run in range(n_runs):
                 status, record = _attempt(
@@ -557,8 +575,10 @@ def run_benchmark(
         "n_runs": int(n_runs),
         "max_samples": int(max_samples) if max_samples is not None else None,
         "temperature": float(temperature),
-        "num_ctx": int(DEFAULT_NUM_CTX),
-        "keep_alive": float(DEFAULT_KEEP_ALIVE),
+        "num_ctx": (int(pool_client.num_ctx) if pool_client is not None else int(DEFAULT_NUM_CTX)),
+        "keep_alive": (
+            float(pool_client.keep_alive) if pool_client is not None else float(DEFAULT_KEEP_ALIVE)
+        ),
         "prompt_sha256": prompt_sha256,
         "timestamp": datetime.now().isoformat(),
     }
@@ -580,3 +600,67 @@ def run_benchmark(
         f.write(summary)
 
     return existing_df
+
+
+def _run_pool_batched(
+    pool_client: Any,
+    cv_data: list[dict[str, Any]],
+    base_prompt: str,
+    n_runs: int,
+    seen_set: set[tuple[str, int]],
+    seen_lock: threading.Lock,
+    temperature: float,
+    output_dir: str,
+) -> tuple[list[dict[str, Any]], Counter[str]]:
+    """Dispatch outstanding (CV, run) attempts to the Node.js worker pool.
+
+    Mirrors the sequential path exactly: robust score parsing, a key is only
+    marked seen after a successful parse, every scored record is checkpointed
+    immediately, and outcomes feed the same STATUS_* attrition counters.
+    """
+    work_items: list[tuple[dict[str, Any], int, str]] = []
+    queued: set[tuple[str, int]] = set()
+    for cv in cv_data:
+        for run in range(n_runs):
+            key = sha256_hash(cv_prompt(base_prompt, cv))
+            if (key, run) in seen_set or (key, run) in queued:
+                continue
+            queued.add((key, run))
+            work_items.append((cv, run, key))
+
+    records: list[dict[str, Any]] = []
+    status_counts: Counter[str] = Counter()
+    batch_size = int(getattr(pool_client, "batch_size", 40)) or len(work_items) or 1
+    logger.info("Running %d items via pool (batch_size=%d)", len(work_items), batch_size)
+
+    for batch_start in range(0, len(work_items), batch_size):
+        batch = work_items[batch_start : batch_start + batch_size]
+        jobs = [
+            {
+                "id": f"{key}_{run}",
+                "prompt": cv_prompt(base_prompt, cv),
+                "temperature": temperature,
+            }
+            for cv, run, key in batch
+        ]
+        results = pool_client.predict_batch(jobs)
+        for job, (cv, run, key) in zip(jobs, batch, strict=True):
+            result = results.get(job["id"])
+            if result is None or result.get("error"):
+                reason = "missing result" if result is None else result["error"]
+                logger.warning("Pool job %s failed: %s", job["id"], reason)
+                status_counts[STATUS_API_ERROR] += 1
+                continue
+            output = str(result.get("response") or "")
+            record = _score_response(output, cv["metadata"], key, run)
+            if record is None:
+                logger.warning("Score parse failed for key %s, run %d: %s", key, run, output[:200])
+                status_counts[STATUS_PARSE_ERROR] += 1
+                continue
+            with seen_lock:
+                seen_set.add((key, run))
+            records.append(record)
+            _save_checkpoint(output_dir, record)
+            status_counts[STATUS_OK] += 1
+
+    return records, status_counts
