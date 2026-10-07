@@ -127,6 +127,41 @@ class TestPostSystemone:
         _, payload = post_systemone("laya", "hi", {})
         assert "847 tokens" in str(payload["error"])
 
+    def test_http_error_body_without_error_key(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        body = json.dumps({"detail": "invalid request"}).encode()
+
+        def fake_urlopen(request: object, timeout: float = 0) -> None:
+            raise urllib.error.HTTPError(
+                "http://x", 400, "Bad Request", Message(), io.BytesIO(body)
+            )
+
+        monkeypatch.setattr("urllib.request.urlopen", fake_urlopen, raising=False)
+        _, payload = post_systemone("laya", "hi", {})
+        assert "HTTP 400" in str(payload["error"])
+
+    def test_non_object_payload(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        self._patch_urlopen_raw(monkeypatch, b"null")
+        _, payload = post_systemone("laya", "hi", {})
+        assert "non-object response" in str(payload["error"])
+
+    def _patch_urlopen_raw(self, monkeypatch: pytest.MonkeyPatch, raw: bytes) -> None:
+        class FakeResponse(io.BytesIO):
+            def __enter__(self) -> FakeResponse:
+                return self
+
+            def __exit__(
+                self,
+                exc_type: type[BaseException] | None,
+                exc_val: BaseException | None,
+                exc_tb: TracebackType | None,
+            ) -> None:
+                return None
+
+        def fake_urlopen(request: object, timeout: float = 0) -> FakeResponse:
+            return FakeResponse(raw)
+
+        monkeypatch.setattr("urllib.request.urlopen", fake_urlopen, raising=False)
+
     def test_connection_refused(self, monkeypatch: pytest.MonkeyPatch) -> None:
         def fake_urlopen(request: object, timeout: float = 0) -> None:
             raise urllib.error.URLError("connection refused")

@@ -113,17 +113,27 @@ def post_systemone(
         with urllib.request.urlopen(request, timeout=timeout) as response:
             payload = json.loads(response.read())
     except urllib.error.HTTPError as exc:
+        raw = b""
         try:
-            payload = json.loads(exc.read())
-        except (ValueError, AttributeError):
-            payload = {"error": str(exc)}
+            raw = exc.read() or b""
+        except OSError:
+            raw = b""
+        text = raw.decode(errors="replace")
+        try:
+            parsed: Any = json.loads(text)
+        except ValueError:
+            parsed = None
+        if isinstance(parsed, dict) and "error" in parsed:
+            payload = parsed
+        else:
+            payload = {"error": f"HTTP {exc.code}", "body": text[:500]}
     except (urllib.error.URLError, TimeoutError, OSError, ValueError) as exc:
         payload = {"error": str(exc)}
     latency = time.perf_counter() - start
-    if isinstance(payload, dict) and "error" in payload:
-        error = payload["error"]
-        if isinstance(error, dict):
-            payload = {"error": str(error)}
+    if not isinstance(payload, dict):
+        payload = {"error": f"non-object response: {payload!r}"}
+    elif "error" in payload and not isinstance(payload["error"], str):
+        payload = {"error": str(payload["error"])}
     return latency, payload
 
 

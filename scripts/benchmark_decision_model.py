@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import platform
 import subprocess
 import sys
@@ -47,6 +48,11 @@ def real_cv_state() -> str:
     return cv_prompt(build_base_prompt(job_description), cvs[0])
 
 
+def real_cv_state_cv(cv: dict[str, Any]) -> str:
+    """The exact prompt for an arbitrary corpus CV."""
+    return cv_prompt(build_base_prompt(job_description), cv)
+
+
 def fetch_tags(host: str) -> dict[str, dict[str, Any]]:
     """Map model name -> {digest, size} from GET /api/tags."""
     with urllib.request.urlopen(f"{host}/api/tags", timeout=30) as response:
@@ -60,10 +66,17 @@ def fetch_tags(host: str) -> dict[str, dict[str, Any]]:
     return tags
 
 
-def stop_model(model: str) -> None:
-    """Unload a model so the next request measures a cold start."""
+def stop_model(model: str, host: str) -> None:
+    """Unload a model so the next request measures a cold start.
+
+    The CLI resolves its server from ``OLLAMA_HOST``, so the selected host
+    must be forwarded — otherwise ``--host`` would stop a model on the
+    wrong server and leave the cold measurement warm. Failures are
+    non-fatal (the model may not be loaded).
+    """
     subprocess.run(
         ["ollama", "stop", model],
+        env={**os.environ, "OLLAMA_HOST": host},
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
         check=False,
@@ -124,12 +137,51 @@ def run_throughput(
         results = list(pool.map(lambda _: one(), range(n)))
     wall = time.perf_counter() - start
     errors = sum(1 for _, payload in results if "error" in payload)
+    successes = n - errors
     return {
         "requests": n,
         "threads": threads,
         "wall_s": round(wall, 3),
-        "rps": round(n / wall, 2) if wall > 0 else 0.0,
+        "rps_ok": round(successes / wall, 2) if wall > 0 else 0.0,
+        "rps_attempted": round(n / wall, 2) if wall > 0 else 0.0,
         "errors": errors,
+    }
+
+
+def sweep_fit(
+    model: str,
+    states: list[str],
+    questions: dict[str, Any],
+    *,
+    host: str,
+    timeout: float,
+) -> dict[str, Any]:
+    """Sweep every corpus prompt against one model; report context fit.
+
+    The default protocol only exercises ``cvs[0]`` — this phase is what
+    ``--sweep`` adds so corpus-fit claims in the docs are reproducible.
+    """
+    ok = 0
+    errors: dict[str, int] = {}
+    tokens: list[float] = []
+    started = time.perf_counter()
+    for state in states:
+        _, payload = post_systemone(model, state, questions, host=host, timeout=timeout)
+        if "error" in payload:
+            message = str(payload["error"])
+            errors[message] = errors.get(message, 0) + 1
+        else:
+            ok += 1
+            used = payload.get("usage", {}).get("input_tokens")
+            if isinstance(used, int):
+                tokens.append(float(used))
+    return {
+        "total": len(states),
+        "ok": ok,
+        "rejected": len(states) - ok,
+        "wall_s": round(time.perf_counter() - started, 1),
+        "errors": errors,
+        "input_tokens": latency_stats(tokens),
     }
 
 
@@ -141,11 +193,12 @@ def bench_model(
     threads: int,
     timeout: float,
     tags: dict[str, dict[str, Any]],
+    sweep_states: list[str] | None = None,
 ) -> dict[str, Any]:
     """Full protocol for one model: cold, warm short, warm CV, throughput."""
     cv_state = real_cv_state()
     print(f"\n=== {model} ===", file=sys.stderr)
-    stop_model(model)
+    stop_model(model, host)
     time.sleep(0.5)
 
     print("  cold...", file=sys.stderr)
@@ -177,11 +230,21 @@ def bench_model(
         host=host,
         timeout=timeout,
     )
-    stop_model(model)
+    stop_model(model, host)
 
     tag_info: dict[str, Any] = tags.get(model, {})
     if not tag_info and ":" not in model:
         tag_info = tags.get(f"{model}:latest", {})
+    corpus_sweep = None
+    if sweep_states is not None:
+        print(f"  corpus sweep x{len(sweep_states)}...", file=sys.stderr)
+        corpus_sweep = sweep_fit(
+            model,
+            sweep_states,
+            build_cv_questions(),
+            host=host,
+            timeout=timeout,
+        )
     return {
         "model": model,
         "digest": tag_info.get("digest", "?"),
@@ -192,13 +255,14 @@ def bench_model(
         "short": short,
         "cv": cv,
         "throughput": throughput,
+        "corpus_sweep": corpus_sweep,
     }
 
 
 def print_table(results: list[dict[str, Any]]) -> None:
     hdr = (
         f"{'model':<40} {'ctx':>4} {'cold':>7} {'short p50':>9} {'short p95':>9} "
-        f"{'cv p50':>7} {'cv p95':>7} {'in_tok':>6} {'rps':>7} {'cv_err':>6}"
+        f"{'cv p50':>7} {'cv p95':>7} {'in_tok':>6} {'rps_ok':>7} {'cv_err':>6}"
     )
     print("\n" + hdr)
     print("-" * len(hdr))
@@ -214,7 +278,7 @@ def print_table(results: list[dict[str, Any]]) -> None:
         print(
             f"{r['model']:<40} {ctx_s:>4} {cold:>7} "
             f"{short['p50'] * 1000:.0f}ms{'':>3} {short['p95'] * 1000:.0f}ms{'':>3} "
-            f"{cv_p50:>7} {cv_p95:>7} {in_tok_s:>6} {r['throughput']['rps']:>7.1f} "
+            f"{cv_p50:>7} {cv_p95:>7} {in_tok_s:>6} {r['throughput']['rps_ok']:>7.1f} "
             f"{cv_errs:>6}"
         )
         if r["cold_error"]:
@@ -223,6 +287,14 @@ def print_table(results: list[dict[str, Any]]) -> None:
             print(f"    cv error: {message[:160]}")
         if r["cv"]["sample_answers"]:
             print(f"    cv answers: {r['cv']['sample_answers']}")
+        sweep = r.get("corpus_sweep")
+        if sweep:
+            tok = sweep["input_tokens"]
+            print(
+                f"    corpus fit: {sweep['ok']}/{sweep['total']} ok, "
+                f"{sweep['rejected']} rejected "
+                f"(input_tokens p50={tok['p50']:.0f} max={tok['max']:.0f})"
+            )
 
 
 def main() -> None:
@@ -232,11 +304,17 @@ def main() -> None:
     parser.add_argument("--threads", type=int, default=4, help="throughput workers")
     parser.add_argument("--host", default=DEFAULT_HOST)
     parser.add_argument("--timeout", type=float, default=120.0)
+    parser.add_argument(
+        "--sweep",
+        action="store_true",
+        help="also sweep all 600 corpus prompts per model (context-fit rates)",
+    )
     parser.add_argument("--json", dest="json_path", help="write full results JSON here")
     args = parser.parse_args()
 
     models = [m.strip() for m in args.models.split(",") if m.strip()]
     tags = fetch_tags(args.host)
+    sweep_states = [real_cv_state_cv(cv) for cv in cvs] if args.sweep else None
     started = datetime.now(UTC).isoformat(timespec="seconds")
 
     results = [
@@ -247,6 +325,7 @@ def main() -> None:
             threads=args.threads,
             timeout=args.timeout,
             tags=tags,
+            sweep_states=sweep_states,
         )
         for model in models
     ]

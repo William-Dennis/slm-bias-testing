@@ -3,7 +3,7 @@
     "host": "http://localhost:11434",
     "n": 50,
     "threads": 4,
-    "started": "2026-10-07T14:06:07+00:00",
+    "started": "2026-10-07T14:45:41+00:00",
     "machine": "arm64",
     "processor": "arm",
     "system": "macOS-26.7.1-arm64-arm-64bit"
@@ -14,16 +14,16 @@
       "digest": "aaba5574a1e1",
       "size_bytes": 846206614,
       "context_limit": 512,
-      "cold_s": 0.233,
+      "cold_s": 1.517,
       "cold_error": null,
       "short": {
         "latency": {
           "n": 50.0,
-          "mean": 0.012798735820106232,
-          "min": 0.011927624997042585,
-          "max": 0.014673417004814837,
-          "p50": 0.01271574999555014,
-          "p95": 0.013432166000711732
+          "mean": 0.012871238399820868,
+          "min": 0.011895542003912851,
+          "max": 0.023387332999845967,
+          "p50": 0.012603832998138387,
+          "p95": 0.013451749997329898
         },
         "errors": {},
         "input_tokens": {
@@ -45,11 +45,11 @@
       "cv": {
         "latency": {
           "n": 50.0,
-          "mean": 0.0029432732610439414,
-          "min": 0.002577915998699609,
-          "max": 0.004633083000953775,
-          "p50": 0.0028781250002793968,
-          "p95": 0.003395958003238775
+          "mean": 0.0029503067406767515,
+          "min": 0.0026146250020246953,
+          "max": 0.004766917001688853,
+          "p50": 0.0028583750026882626,
+          "p95": 0.003481625004496891
         },
         "errors": {
           "question 0: state has 847 tokens; limit is 477 with this question": 50
@@ -67,9 +67,68 @@
       "throughput": {
         "requests": 50,
         "threads": 4,
-        "wall_s": 0.498,
-        "rps": 100.41,
+        "wall_s": 0.491,
+        "rps_ok": 101.74,
+        "rps_attempted": 101.74,
         "errors": 0
+      },
+      "corpus_sweep": {
+        "total": 600,
+        "ok": 0,
+        "rejected": 600,
+        "wall_s": 2.0,
+        "errors": {
+          "question 0: state has 847 tokens; limit is 477 with this question": 23,
+          "question 0: state has 876 tokens; limit is 477 with this question": 23,
+          "question 0: state has 853 tokens; limit is 477 with this question": 27,
+          "question 0: state has 801 tokens; limit is 477 with this question": 23,
+          "question 0: state has 964 tokens; limit is 477 with this question": 23,
+          "question 0: state has 846 tokens; limit is 477 with this question": 6,
+          "question 0: state has 875 tokens; limit is 477 with this question": 6,
+          "question 0: state has 852 tokens; limit is 477 with this question": 11,
+          "question 0: state has 800 tokens; limit is 477 with this question": 6,
+          "question 0: state has 963 tokens; limit is 477 with this question": 6,
+          "question 0: state has 848 tokens; limit is 477 with this question": 31,
+          "question 0: state has 877 tokens; limit is 477 with this question": 31,
+          "question 0: state has 854 tokens; limit is 477 with this question": 32,
+          "question 0: state has 802 tokens; limit is 477 with this question": 31,
+          "question 0: state has 965 tokens; limit is 477 with this question": 31,
+          "question 0: state has 849 tokens; limit is 477 with this question": 29,
+          "question 0: state has 878 tokens; limit is 477 with this question": 29,
+          "question 0: state has 855 tokens; limit is 477 with this question": 29,
+          "question 0: state has 803 tokens; limit is 477 with this question": 29,
+          "question 0: state has 966 tokens; limit is 477 with this question": 29,
+          "question 0: state has 850 tokens; limit is 477 with this question": 13,
+          "question 0: state has 879 tokens; limit is 477 with this question": 13,
+          "question 0: state has 856 tokens; limit is 477 with this question": 13,
+          "question 0: state has 804 tokens; limit is 477 with this question": 13,
+          "question 0: state has 967 tokens; limit is 477 with this question": 13,
+          "question 0: state has 881 tokens; limit is 477 with this question": 5,
+          "question 0: state has 858 tokens; limit is 477 with this question": 5,
+          "question 0: state has 806 tokens; limit is 477 with this question": 5,
+          "question 0: state has 969 tokens; limit is 477 with this question": 5,
+          "question 0: state has 851 tokens; limit is 477 with this question": 8,
+          "question 0: state has 880 tokens; limit is 477 with this question": 8,
+          "question 0: state has 857 tokens; limit is 477 with this question": 8,
+          "question 0: state has 805 tokens; limit is 477 with this question": 8,
+          "question 0: state has 968 tokens; limit is 477 with this question": 8,
+          "question 0: state has 882 tokens; limit is 477 with this question": 4,
+          "question 0: state has 859 tokens; limit is 477 with this question": 4,
+          "question 0: state has 807 tokens; limit is 477 with this question": 4,
+          "question 0: state has 970 tokens; limit is 477 with this question": 4,
+          "question 0: state has 883 tokens; limit is 477 with this question": 1,
+          "question 0: state has 860 tokens; limit is 477 with this question": 1,
+          "question 0: state has 808 tokens; limit is 477 with this question": 1,
+          "question 0: state has 971 tokens; limit is 477 with this question": 1
+        },
+        "input_tokens": {
+          "n": 0.0,
+          "mean": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "p50": 0.0,
+          "p95": 0.0
+        }
       }
     },
     {
@@ -77,16 +136,16 @@
       "digest": "63b6e37ecedb",
       "size_bytes": 678202291,
       "context_limit": 1024,
-      "cold_s": 0.628,
+      "cold_s": 0.735,
       "cold_error": null,
       "short": {
         "latency": {
           "n": 50.0,
-          "mean": 0.00749512001988478,
-          "min": 0.006859291999717243,
-          "max": 0.009879166005703155,
-          "p50": 0.007385708995570894,
-          "p95": 0.008050374999584164
+          "mean": 0.008848454159742686,
+          "min": 0.007071415995596908,
+          "max": 0.0125278330015135,
+          "p50": 0.008213624998461455,
+          "p95": 0.011303833998681512
         },
         "errors": {},
         "input_tokens": {
@@ -108,11 +167,11 @@
       "cv": {
         "latency": {
           "n": 50.0,
-          "mean": 0.047977535880490904,
-          "min": 0.04741933300101664,
-          "max": 0.04974929200398037,
-          "p50": 0.04787391699937871,
-          "p95": 0.04849395799828926
+          "mean": 0.04964954081951874,
+          "min": 0.04772833300376078,
+          "max": 0.11473545899934834,
+          "p50": 0.04829412500112085,
+          "p95": 0.048855792003450915
         },
         "errors": {},
         "input_tokens": {
@@ -140,8 +199,33 @@
         "requests": 50,
         "threads": 4,
         "wall_s": 0.253,
-        "rps": 197.89,
+        "rps_ok": 197.28,
+        "rps_attempted": 197.28,
         "errors": 0
+      },
+      "corpus_sweep": {
+        "total": 600,
+        "ok": 480,
+        "rejected": 120,
+        "wall_s": 24.4,
+        "errors": {
+          "question 0: state has 1004 tokens; limit is 989 with this question": 44,
+          "question 0: state has 1003 tokens; limit is 989 with this question": 33,
+          "question 0: state has 1002 tokens; limit is 989 with this question": 8,
+          "question 0: state has 1005 tokens; limit is 989 with this question": 21,
+          "question 0: state has 1008 tokens; limit is 989 with this question": 5,
+          "question 0: state has 1007 tokens; limit is 989 with this question": 4,
+          "question 0: state has 1006 tokens; limit is 989 with this question": 3,
+          "question 0: state has 1009 tokens; limit is 989 with this question": 2
+        },
+        "input_tokens": {
+          "n": 480.0,
+          "mean": 1829.3333333333333,
+          "min": 1791.0,
+          "max": 1899.0,
+          "p50": 1829.0,
+          "p95": 1891.0
+        }
       }
     },
     {
@@ -149,16 +233,16 @@
       "digest": "c62bc110244c",
       "size_bytes": 846196561,
       "context_limit": 1024,
-      "cold_s": 0.233,
+      "cold_s": 0.329,
       "cold_error": null,
       "short": {
         "latency": {
           "n": 50.0,
-          "mean": 0.01278303256010986,
-          "min": 0.011923209000087809,
-          "max": 0.014757958000700455,
-          "p50": 0.012705208006082103,
-          "p95": 0.01345216700428864
+          "mean": 0.012948890060361009,
+          "min": 0.012245833997440059,
+          "max": 0.01424691599822836,
+          "p50": 0.012864249998528976,
+          "p95": 0.013623457998619415
         },
         "errors": {},
         "input_tokens": {
@@ -180,11 +264,11 @@
       "cv": {
         "latency": {
           "n": 50.0,
-          "mean": 0.09991049836040475,
-          "min": 0.09887675000209128,
-          "max": 0.1103058750013588,
-          "p50": 0.09970454200083623,
-          "p95": 0.10051233300328022
+          "mean": 0.10216264914037311,
+          "min": 0.0996790829958627,
+          "max": 0.16120033300103387,
+          "p50": 0.10086604100069962,
+          "p95": 0.10286145799909718
         },
         "errors": {},
         "input_tokens": {
@@ -211,9 +295,25 @@
       "throughput": {
         "requests": 50,
         "threads": 4,
-        "wall_s": 0.492,
-        "rps": 101.65,
+        "wall_s": 0.506,
+        "rps_ok": 98.83,
+        "rps_attempted": 98.83,
         "errors": 0
+      },
+      "corpus_sweep": {
+        "total": 600,
+        "ok": 600,
+        "rejected": 0,
+        "wall_s": 63.9,
+        "errors": {},
+        "input_tokens": {
+          "n": 600.0,
+          "mean": 1807.9,
+          "min": 1668.0,
+          "max": 2010.0,
+          "p50": 1778.0,
+          "p95": 2002.0
+        }
       }
     }
   ]

@@ -54,16 +54,18 @@ Convai Innovations.
 
 | model | ctx | cold load | short p50/p95 | CV prompt p50/p95 | throughput rps @4 threads (short) | CV prompt |
 |---|---|---|---|---|---|---|
-| `laya` (english) | 512 | 233 ms | 13 / 13 ms | **rejected** | 100.4 | error, 0/50 |
-| `laya:322m-multilingual-mlx-fp16` | 1024 | 628 ms | 7 / 8 ms | 48 / 48 ms | 197.9 | 50/50 ok |
-| `laya:421m-typed-decisions-mlx-fp16` | 1024 | 233 ms | 13 / 13 ms | 100 / 101 ms | 101.7 | 50/50 ok |
+| `laya` (english) | 512 | 1517 ms | 13 / 13 ms | **rejected** | 101.7 | error, 0/50 |
+| `laya:322m-multilingual-mlx-fp16` | 1024 | 735 ms | 8 / 11 ms | 48 / 49 ms | 197.3 | 50/50 ok |
+| `laya:421m-typed-decisions-mlx-fp16` | 1024 | 329 ms | 13 / 14 ms | 101 / 103 ms | 98.8 | 50/50 ok |
 
 Reading:
 
-- **Cold = first-request cost** (model load + encode), 233–628 ms, once per
-  load. Warm single-question decisions are **7–13 ms**; the full CV prompt
-  (~900-token state, 2 questions) is **48–100 ms**.
-- Throughput at 4 threads on the short state: **100–198 decisions/s**.
+- **Cold = first-request cost** (model load + encode), 0.3–1.5 s across
+  runs (volatile; once per load). Warm single-question decisions are
+  **8–13 ms**; the full CV prompt (~900-token state, 2 questions) is
+  **48–103 ms**.
+- Throughput at 4 threads on the short state: **99–197 successful
+  decisions/s** (`rps_ok`; attempted rate reported separately).
   At realistic CV-prompt sizes (full 600-CV sweep, sequential): multilingual
   **24/s**, typed-decisions **9.4/s**.
 - `input_tokens` in the responses **sums one encoder row per question**
@@ -76,8 +78,8 @@ Reading:
 
 | tag | fits | rejected | throughput |
 |---|---|---|---|
-| `laya` (512 ctx) | 0 / 600 | 600 | — |
-| `322m-multilingual` (1024) | **480 / 600** | 120 (state > 989 tok) | 25 s total |
+| `laya` (512 ctx) | 0 / 600 | 600 | 2 s total |
+| `322m-multilingual` (1024) | **480 / 600** | 120 (state > 989 tok) | 24 s total |
 | `421m-typed-decisions` (1024) | **600 / 600** | 0 | 64 s total |
 
 Prompt sizes span 3,927–4,650 chars (median 4,124). **`421m-typed-decisions`
@@ -103,7 +105,7 @@ value in **[0, k−1]** for k levels (here 0–2), not [0,1]; `noul` carries no
 
 | benchmark | requires today | fit | mapping if integrated |
 |---|---|---|---|
-| CV screening | `NN/100` text from a sampling prompt | **partial** | `noul` P(advance)×100 (0–100, calibration-dependent) **or** `score` with k levels (coarse ordinal). Either way the number is no longer "LLM score out of 100" — provenance must record `score_source: noul_probability | score_ordinal`. Deterministic → `n_runs=1`. |
+| CV screening | `NN/100` text from a sampling prompt | **partial** | `noul` P(advance)×100 (0–100, calibration-dependent) **or** `score` with k levels (coarse ordinal). Either way the number is no longer "LLM score out of 100" — provenance must record `score_source: noul_probability \| score_ordinal`. Deterministic → `n_runs=1`. |
 | StereoSet | 0–100 appropriateness per continuation | **partial** | `score` over ordered levels ("inappropriate … appropriate"), or `noul` "is this continuation appropriate?" — changes the scale from the published one. |
 | WinoBias | free-text answer containing the antecedent | **rework** | natural fit as `choice` over candidate entities — but the prompt must be redesigned as a typed coreference question; results not comparable with existing generative runs. |
 | Demographic bias (output length) | generated text length | **incompatible** | no generation exists. Nothing to map — by construction out of scope. |
@@ -111,7 +113,7 @@ value in **[0, k−1]** for k levels (here 0–2), not [0,1]; `noul` carries no
 Context is the gating constraint: decision models see **512/1024 tokens**,
 not the chat models' 4k–32k. Only `421m-typed-decisions` clears the current
 corpus (600/600); any corpus or prompt growth must re-run the fit sweep
-(`scripts/benchmark_decision_model.py` measures exactly this).
+(`scripts/benchmark_decision_model.py --sweep` measures exactly this).
 
 ## What an integration (PR I) would add
 
