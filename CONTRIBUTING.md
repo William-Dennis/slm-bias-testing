@@ -20,16 +20,17 @@ This repo enforces an **issue → branch → PR → review → merge** model.
    git checkout -b feat/issue-N-description
    ```
 3. Make changes. Write tests first (TDD), then implement.
-4. Run checks locally before pushing:
+4. Run checks locally before pushing (same commands as CI):
    ```bash
-   uv run ruff check src tests
-   uv run ruff format --check src tests
+   uv run ruff check src tests scripts
+   uv run ruff format --check src tests scripts
    uv run ty check
-   uv run pytest
+   uv run pytest -m "not integration and not slow"
+   node --check scripts/ollama_pool.mjs
    ```
 5. Push and open a PR targeting `main`. Link the issue with `Closes #N`.
 6. All CI checks must pass (Lint, Type Check, Test 3.11, Test 3.12).
-7. At least 1 approving review required before merge.
+7. No approving review required (solo repo) — but no admin bypass.
 8. All review threads must be resolved before merge.
 9. Squash merge. Branch auto-deleted after merge.
 
@@ -69,15 +70,12 @@ Branches auto-delete after merge.
 
 ## Running Benchmarks
 
-Benchmarks require Ollama running locally:
+Benchmarks require Ollama (and Node.js for the parallel pool):
 
 ```bash
 ollama serve &
-uv run python -m slm_bias_testing.runner gemma3-1b --benchmark cv-screening
-```
-
-Or run the full overnight suite:
-
-```bash
-bash scripts/overnight_run.sh
+# one model, one benchmark
+uv run python scripts/run_benchmarks.py --models gemma3-1b --benchmark cv-screening
+# every registered model, every benchmark
+uv run python scripts/run_benchmarks.py --models all --benchmark all --pool-size 4
 ```

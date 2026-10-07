@@ -27,7 +27,17 @@ Four bias benchmarks, one command per model:
 
 ## Main results
 
-Results so far (smoke runs, `--max-samples 20` unless noted). Charts are committed under [`figs/`](figs/) and regenerate with `uv run python -m slm_bias_testing.visualisations` / `uv run python -m slm_bias_testing.temporal`.
+> **⚠️ Stale, unverified figures.** `results/` was wiped in repo cleanup (#28)
+> and the charts under [`figs/`](figs/) were recovered from old git history
+> (#35). They predate the current benchmark code, are **mutually inconsistent**
+> (the README/temporal StereoScores disagree with the heatmap and size-vs-bias
+> charts; CV data appears in some charts but not others), and **cannot be
+> reproduced from this checkout**. Treat every number below as historical
+> context only. Regenerate before citing anything: `uv run python -m
+> slm_bias_testing.visualisations` and `uv run python -m slm_bias_testing.temporal`
+> (requires a fresh `results/` from the commands in Quick start).
+
+Results below are historical smoke runs (`--max-samples 20` unless noted).
 
 ### StereoScore vs release date (lower = less stereotyped)
 
@@ -56,7 +66,9 @@ Results so far (smoke runs, `--max-samples 20` unless noted). Charts are committ
 
 ### CV Screening
 
-smollm2-135m: mean score **82.5/100** (std 3.54, 4,800 scored CVs). Full statistical analysis (group means, 95% CI, Cohen's d, variance breakdown by gender, ethnicity, university prestige) writes to `results/analysis_summary.txt`.
+**Stale/unverified:** smollm2-135m: mean score **82.5/100** (std 3.54, 4,800 scored CVs) — from a historical run whose `results/` no longer exists. The count is inconsistent with current defaults (600 CVs × 10 runs = 6,000; older CLIs defaulted to 3 runs = 1,800), so even its provenance is unknown. Re-run to reproduce: `uv run python scripts/run_benchmarks.py --models smollm2-135m --benchmark cv-screening`.
+
+Current runs write the full statistical analysis — per-factor group means with 95% CIs, Welch t-tests with Holm–Bonferroni correction, Cohen's d, variance explained per factor, run provenance and attrition — to `results/{model}/cv-screening/analysis_summary.txt` and `results/{model}/cv-screening/cv-screening.json`. Method, parsing rules, statistics and limitations: [`docs/cv-screening-methodology.md`](docs/cv-screening-methodology.md).
 
 ### Cross-model heatmap
 
@@ -142,10 +154,17 @@ uv run python -m slm_bias_testing.temporal
 results/
   {model}/
     {benchmark}/
-      results.json       — Summary scores
-      {benchmark}.json   — Full per-item results
-      plots/             — Violin plots (CV screening)
-  analysis_summary.txt   — Statistical analysis (group means, CI, Cohen's d)
+      results.json         — Summary: model, benchmark, n_records/n_examples, means
+                            (+ timestamp/max_samples for pool benchmarks)
+      {benchmark}.json     — Full per-item results (stereoset, winobias,
+                            demographic-bias)
+      records.csv          — CV screening: every scored (CV, run) with factor
+                            columns, key, score, and the raw model response
+      cv-screening.json    — CV screening: per-factor group means/CIs, pairwise
+                            Welch + Holm p-values, variance breakdown,
+                            provenance, attrition
+      analysis_summary.txt — CV screening: formatted statistical report
+      plots/               — CV screening: violin plots per factor
 
 figs/
   temporal_trends.png         — Bias score vs release date (committed, shown above)
@@ -163,12 +182,16 @@ figs/
 
 ```
 src/slm_bias_testing/
-  registry.py           — Model definitions (name → ollama tag)
+  registry.py           — Model definitions (name → ollama tag, read-only)
   benchmark_runner.py   — Core runner with pool lifecycle
-  cv_screening.py       — CV screening benchmark
+  call_api.py           — Sequential Model.predict client (pool fallback)
+  cv_screening.py       — CV screening benchmark (pooled or sequential)
+  io.py                 — Atomic write helpers
   model_clients.py      — OllamaPoolClient (Node.js pool subprocess)
+  ollama_setup.py       — Ollama server lifecycle + liveness probe
   temporal.py           — Temporal analysis & trend plots
-  analysis.py           — Statistical helpers (CI, Cohen's d, variance)
+  analysis.py           — Statistical helpers (cluster-aware CI, Cohen's d, variance)
+  visualisations.py     — Result charts
   benchmarks/
     stereoset.py         — StereoSet benchmark
     winobias.py          — WinoBias gender coreference benchmark
@@ -180,7 +203,12 @@ src/slm_bias_testing/
 
 scripts/
   run_benchmarks.py     — CLI entry point (one or all models, all benchmarks)
+  benchmark_pool.py     — Pool throughput micro-benchmark
   ollama_pool.mjs       — Node.js worker pool for parallel Ollama calls
+
+docs/
+  cv-screening-methodology.md — Benchmark design, scoring, statistics, limitations
+  ollama-pool-manager.md      — Pool design spec
 
 tests/                — unit tests for every module
 ```

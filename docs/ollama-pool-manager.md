@@ -1,4 +1,11 @@
-# Design Spec: Ollama Pool Manager
+# Ollama Pool Manager
+
+> **Status: implemented** (spec → shipped in #32, sequential fallback kept in
+> #44). This document records the design that `scripts/ollama_pool.mjs`,
+> `src/slm_bias_testing/model_clients.py`, and `benchmark_runner.py` now
+> implement. Sections describing *future* file changes are kept for history
+> but corrected below where the shipped tree differs.
+
 
 ## Goal
 
@@ -46,11 +53,17 @@ Options:
 
 ### 2. Python Side — Sequential Benchmark Runner
 
-Changes to existing code:
-- Remove ThreadPoolExecutor from `benchmark.py`
-- Remove threading imports and locks
-- `run_benchmark()` becomes purely sequential
-- No changes to benchmark evaluation logic (stereoset, winobias, demographic)
+Shipped behaviour (files renamed since this spec was written):
+
+- `cv_screening.py` (was `benchmark.py`) dispatches all scoring attempts to
+  the pool in batches; `benchmark_runner.py` (was `runner.py`) owns pool
+  lifecycle per model.
+- When no pool is available (Node.js missing, pool failed to start), the same
+  benchmarks fall back to sequential `Model.predict` via
+  `SequentialPredictor` (`model_clients.py`) — Python without Node.js still
+  runs end-to-end.
+- Evaluation logic (stereoset, winobias, demographic) is unchanged apart from
+  the `predict_batch` dispatch.
 
 New flow:
 - Python opens `ollama_pool.mjs` as subprocess
@@ -248,19 +261,23 @@ on actual system load.
 - Node.js crashes → detect via subprocess exit, restart if needed
 - Partial results → checkpoint saved incrementally (existing behavior)
 
-## Files to Create/Modify
+## Files (as shipped)
 
-### Create
-- `scripts/ollama_pool.mjs` (~150 lines)
+### Created
+- `scripts/ollama_pool.mjs` — worker pool
+- `src/slm_bias_testing/model_clients.py` — `OllamaPoolClient`,
+  `SequentialPredictor`, pool protocol
+- `src/slm_bias_testing/benchmark_runner.py` — per-model pool lifecycle
+  (replaces `runner.py`)
+- `tests/test_model_clients.py`, `scripts/benchmark_pool.py`
 
-### Modify
-- `src/slm_bias_testing/benchmark.py` — remove ThreadPoolExecutor, use pool
-- `src/slm_bias_testing/call_api.py` — add pool-based Model class
-- `scripts/run_single_model.py` — pass pool size, no threading flags
-- `scripts/run_parallel.py` — remove threading flags
+### Renamed / replaced
+- `benchmark.py` → `cv_screening.py` (pool batch path + sequential fallback)
+- `scripts/run_single_model.py`, `run_parallel.py`, `run_experiments.py` →
+  `scripts/run_benchmarks.py`
 
-### No Changes
-- `stereoset.py`, `winobias.py`, `demographic_bias.py` — evaluation logic unchanged
+### Kept unchanged
+- `stereoset.py`, `winobias.py`, `demographic_bias.py` evaluation logic
 - `registry.py`, `analysis.py`, `temporal.py`, `visualisations.py`
 
 ## Estimated Impact
@@ -289,10 +306,10 @@ using the pool instead of sequential calls.
    echo '{"id":"test","model":"smollm:135m","prompt":"Say hi"}' | node scripts/ollama_pool.mjs --adaptive --max-pool 4 2>&1
 
 3. Test Python integration with max-samples 5:
-   uv run python scripts/run_single_model.py smollm-135m --max-samples 5
+   uv run python scripts/run_benchmarks.py --models smollm-135m --benchmark cv-screening --max-samples 5
 
-4. Test parallel with 2 models:
-   uv run python scripts/run_parallel.py --concurrency 2 --models smollm-135m,gemma3-270m
+4. Test throughput across models:
+   uv run python scripts/benchmark_pool.py --model smollm:135m --jobs 20
 
 5. Verify results match previous run format
 
