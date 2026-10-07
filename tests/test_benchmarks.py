@@ -549,3 +549,45 @@ class TestPoolClientRequired:
         bm = DemographicBiasBenchmark()
         with pytest.raises(ValueError, match="pool_client"):
             bm.evaluate(None)
+
+
+class _SequentialStubModel:
+    """Minimal predict-compatible model for the sequential fallback."""
+
+    def __init__(self, answers: dict[str, str]):
+        self.answers = answers
+        self.prompts: list[str] = []
+
+    def predict(self, prompt: str, temperature: float = 0.0) -> str:
+        self.prompts.append(prompt)
+        for key, val in self.answers.items():
+            if key in prompt:
+                return val
+        return "50"
+
+
+class TestSequentialFallback:
+    """Benchmarks run via Model.predict (wrapped in SequentialPredictor) without a pool."""
+
+    def test_stereoset_evaluate_with_model_only(self):
+        fake_data = [
+            _make_stereoset_item(
+                "test1",
+                "gender",
+                "doctor",
+                "The doctor entered.",
+                "He is skilled.",
+                "She is skilled.",
+            )
+        ]
+        model = _SequentialStubModel({"He is skilled.": "90", "She is skilled.": "10"})
+        with patch.object(StereoSetBenchmark, "load_dataset", return_value=fake_data):
+            bm = StereoSetBenchmark()
+            results = bm.evaluate(model)
+        assert results["n_examples"] == 1
+        assert results["overall_stereotype_score"] == 100.0
+        assert len(model.prompts) == 2
+
+    def test_missing_both_model_and_pool_raises_before_dataset_load(self):
+        with pytest.raises(ValueError, match="pool_client"):
+            StereoSetBenchmark().evaluate(None)

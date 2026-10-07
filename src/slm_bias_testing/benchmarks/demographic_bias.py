@@ -85,6 +85,11 @@ class DemographicBiasBenchmark(BaseBenchmark):
         output_dir: str | None = None,
         pool_client: PoolClientProtocol | None = None,
     ) -> dict[str, Any]:
+        if pool_client is None and model is None:
+            raise ValueError(
+                f"{self.name}: pass pool_client (pooled) or model (sequential) — "
+                "neither was provided"
+            )
         data = self.load_dataset()
         if max_samples is not None:
             data = data[:max_samples]
@@ -96,9 +101,10 @@ class DemographicBiasBenchmark(BaseBenchmark):
                 checkpoint[call["item_idx"]] = call
 
         if pool_client is None:
-            raise ValueError(
-                f"{self.name} requires pool_client — OllamaPoolClient must be provided"
-            )
+            from slm_bias_testing.model_clients import SequentialPredictor
+
+            pool_client = SequentialPredictor(model)
+            logger.info("%s: pool_client missing — using sequential Model.predict", self.name)
         return self._evaluate_pool(data, checkpoint, pool_client, output_dir)
 
     def _evaluate_pool(

@@ -6,7 +6,7 @@ import json
 from typing import cast
 from unittest.mock import MagicMock, patch
 
-from slm_bias_testing.model_clients import OllamaPoolClient
+from slm_bias_testing.model_clients import OllamaPoolClient, PoolClientProtocol, SequentialPredictor
 
 
 def _mock_popen_with_ready():
@@ -109,3 +109,39 @@ class TestOllamaPoolClient:
         client = OllamaPoolClient(model_name="test-model")
         assert client.batch_timeout == 300
         client.close()
+
+
+class TestSequentialPredictor:
+    """SequentialPredictor adapts Model.predict to the pool protocol."""
+
+    class _StubModel:
+        def __init__(self, fail: bool = False):
+            self.fail = fail
+            self.calls: list[tuple[str, float]] = []
+
+        def predict(self, prompt: str, temperature: float = 0.0) -> str:
+            self.calls.append((prompt, temperature))
+            if self.fail:
+                raise RuntimeError("ollama down")
+            return "85/100"
+
+    def test_predict_batch_success(self):
+        model = self._StubModel()
+        client = SequentialPredictor(model)
+        results = client.predict_batch([{"id": "j1", "prompt": "hi", "temperature": 0.5}])
+        assert results == {"j1": {"response": "85/100", "error": None}}
+        assert model.calls == [("hi", 0.5)]
+
+    def test_predict_batch_captures_error(self):
+        client = SequentialPredictor(self._StubModel(fail=True))
+        results = client.predict_batch([{"id": "j1", "prompt": "hi"}])
+        assert results["j1"]["response"] is None
+        assert "ollama down" in results["j1"]["error"]
+
+    def test_satisfies_pool_protocol(self):
+        def takes_pool(client: PoolClientProtocol) -> int:
+            return client.batch_size
+
+        client = SequentialPredictor(self._StubModel())
+        assert takes_pool(client) == 1
+        assert client.close() is None

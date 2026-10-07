@@ -71,12 +71,18 @@ def run_model_benchmarks(
     # Create pool client once per model — it manages Ollama lifecycle
     pool_client: OllamaPoolClient | None = None
     try:
-        pool_client = OllamaPoolClient(
-            model_name=ollama_tag,
-            pool_size=pool_size,
-            batch_size=batch_size,
-            adaptive=adaptive,
-        )
+        try:
+            pool_client = OllamaPoolClient(
+                model_name=ollama_tag,
+                pool_size=pool_size,
+                batch_size=batch_size,
+                adaptive=adaptive,
+            )
+        except Exception as exc:
+            logger.warning(
+                "Ollama pool unavailable (%s) — falling back to sequential Model.predict",
+                exc,
+            )
         for bench in bench_list:
             results_dir = os.path.join(base_output_dir, model_name, bench)
             results_file = os.path.join(results_dir, "results.json")
@@ -92,6 +98,7 @@ def run_model_benchmarks(
                 from slm_bias_testing.cv_screening import run_cv_screening
 
                 df = run_cv_screening(
+                    model_name=ollama_tag,
                     output_dir=results_dir,
                     max_samples=max_samples,
                     pool_client=pool_client,
@@ -113,8 +120,13 @@ def run_model_benchmarks(
                 bm = _get_benchmark(bench)
                 if bm is None:
                     continue
+                fallback_model = None
+                if pool_client is None:
+                    from slm_bias_testing.call_api import Model
+
+                    fallback_model = Model(model_name=ollama_tag)
                 results = bm.evaluate(
-                    model=None,
+                    model=fallback_model,
                     max_samples=max_samples,
                     output_dir=results_dir,
                     pool_client=pool_client,

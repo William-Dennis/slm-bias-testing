@@ -50,21 +50,28 @@ Python (benchmark logic)          Node.js (ollama_pool.mjs)
 
 | File | Reason |
 |---|---|
-| `src/slm_bias_testing/call_api.py` | Replaced by `model_clients.py` |
-| `src/slm_bias_testing/ollama_setup.py` | Pool owns Ollama lifecycle |
 | `src/slm_bias_testing/benchmark.py` | Renamed to `cv_screening.py` |
 | `src/slm_bias_testing/runner.py` | Renamed to `benchmark_runner.py` |
 | `scripts/run_single_model.py` | Merged into `run_benchmarks.py` |
 | `scripts/run_parallel.py` | Model-level parallelism removed |
 | `scripts/run_experiments.py` | Merged into `run_benchmarks.py` |
-| `tests/test_call_api.py` | Tests deleted classes |
+
+## Files Kept for the Sequential Fallback
+
+Benchmarks must also run without Node.js, so the `Model.predict` path stays:
+
+| File | Reason |
+|---|---|
+| `src/slm_bias_testing/call_api.py` | Sequential transport when the pool is unavailable |
+| `src/slm_bias_testing/ollama_setup.py` | Server recovery used by the sequential path |
+| `tests/test_call_api.py` | Covers the sequential path |
 
 ## Files to Modify
 
 | File | Changes |
 |---|---|
 | `src/slm_bias_testing/benchmarks/__init__.py` | Add `pool_client` param to `evaluate()` |
-| `src/slm_bias_testing/benchmarks/stereoset.py` | Refactor to always-batch with `predict_batch()` |
+| `src/slm_bias_testing/benchmarks/stereoset.py` | Batch via `predict_batch()`; fall back to `SequentialPredictor` without a pool |
 | `src/slm_bias_testing/benchmarks/winobias.py` | Same refactor |
 | `src/slm_bias_testing/benchmarks/demographic_bias.py` | Same refactor |
 | `src/slm_bias_testing/temporal.py` | Update help string reference |

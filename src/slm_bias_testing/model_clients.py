@@ -10,7 +10,7 @@ import subprocess
 import threading
 from collections import deque
 from pathlib import Path
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 if TYPE_CHECKING:
     from types import TracebackType
@@ -247,3 +247,35 @@ class OllamaPoolClient:
         exc_tb: TracebackType | None,
     ) -> None:
         self.close()
+
+
+class SequentialPredictor:
+    """``PoolClientProtocol`` adapter that scores jobs one at a time.
+
+    Lets the benchmarks keep their single pooled code path while still
+    running without Node.js: pass ``model=Model(...)`` to ``evaluate()`` and
+    it is wrapped here instead of an ``OllamaPoolClient``.
+    """
+
+    batch_size = 1
+    batch_timeout = 0
+    pool_size = 1
+
+    def __init__(self, model: Any) -> None:
+        self._model = model
+        self.model_name = str(getattr(model, "model_name", "unknown"))
+
+    def predict_batch(self, jobs: list[dict]) -> dict[str, dict]:
+        results: dict[str, dict] = {}
+        for job in jobs:
+            temperature = float(job.get("temperature", 0.0))
+            try:
+                response = self._model.predict(job["prompt"], temperature=temperature)
+                results[job["id"]] = {"response": str(response), "error": None}
+            except Exception as exc:
+                logger.warning("Sequential predict failed for job %s: %s", job["id"], exc)
+                results[job["id"]] = {"response": None, "error": str(exc)}
+        return results
+
+    def close(self) -> None:
+        return None

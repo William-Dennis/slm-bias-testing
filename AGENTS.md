@@ -53,7 +53,9 @@ scripts/
 - **No mutable globals.** Pool state lives in subprocess, not Python module vars.
 - **Type annotations required.** Ty strict mode.
 - **All benchmarks extend `BaseBenchmark`.** Must implement `load_dataset()` and `evaluate()`.
-- **Benchmarks use `pool_client.predict_batch()`** for parallel processing when pool is available.
+- **Benchmarks use `pool_client.predict_batch()`** when a pool is available;
+  otherwise they fall back to sequential `Model.predict` via `SequentialPredictor`
+  (benchmarks run without Node.js).
 
 ## CI Pipeline
 

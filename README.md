@@ -182,7 +182,7 @@ scripts/
   run_benchmarks.py     — CLI entry point (one or all models, all benchmarks)
   ollama_pool.mjs       — Node.js worker pool for parallel Ollama calls
 
-tests/                — 114 tests
+tests/                — unit tests for every module
 ```
 
 ---
@@ -190,7 +190,8 @@ tests/                — 114 tests
 ## Prerequisites
 
 - [Ollama](https://ollama.ai) — all models run locally
-- [Node.js](https://nodejs.org) — for the parallel worker pool
+- [Node.js](https://nodejs.org) — for the parallel worker pool (optional; without it
+  benchmarks fall back to sequential `Model.predict`)
 - `uv` (or `pip`) for Python dependencies
 
 ---
