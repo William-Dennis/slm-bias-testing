@@ -7,18 +7,22 @@ nothing to parse. The contract is TypeSafe's Jev API, served natively by
 Ollama >= 0.35 (this repo's spike targets laya on Ollama >= 0.40).
 
 This module holds the transport and the pure shaping helpers used by
-``scripts/benchmark_decision_model.py``; the bias benchmarks themselves still
-dispatch through the chat pool (integration tracked in issue #46).
+``scripts/benchmark_decision_model.py``. Chat benchmarks still dispatch
+through the chat pool; CV screening runs SystemOneClient for
+api="systemone" models (issue #46).
 """
 
 from __future__ import annotations
 
 import json
+import math
 import os
 import time
 import urllib.error
 import urllib.request
 from typing import Any
+
+from .decision_instrument import score_from_answer, score_question
 
 DEFAULT_HOST = os.environ.get("OLLAMA_HOST", "localhost:11434")
 if "://" not in DEFAULT_HOST:
@@ -135,6 +139,50 @@ def post_systemone(
     elif "error" in payload and not isinstance(payload["error"], str):
         payload = {"error": str(payload["error"])}
     return latency, payload
+
+
+class SystemOneClient:
+    """``cv_screening.Predictor``-compatible adapter over ``/v1/systemone``.
+
+    Deterministic by construction: ``temperature`` is accepted for signature
+    compatibility and ignored (the endpoint has no sampling). ``predict``
+    returns the raw answers JSON plus a ``NN/100`` line, so the response is
+    both provenance for the ``response`` column and parseable by
+    ``cv_screening.parse_score``.
+    """
+
+    def __init__(
+        self,
+        model_name: str,
+        *,
+        host: str = DEFAULT_HOST,
+        keep_alive: float | str | None = None,
+        timeout: float = 120.0,
+    ) -> None:
+        self.model_name = model_name
+        self.host = host
+        self.keep_alive = keep_alive
+        self.timeout = timeout
+
+    def predict(self, prompt: str, temperature: float = 1.0) -> str:
+        _, payload = post_systemone(
+            self.model_name,
+            prompt,
+            score_question(),
+            host=self.host,
+            timeout=self.timeout,
+            keep_alive=self.keep_alive,
+        )
+        if "error" in payload:
+            raise RuntimeError(f"systemone request failed: {payload['error']}")
+        answers = payload.get("answers")
+        answer = answers.get("score", {}) if isinstance(answers, dict) else {}
+        parsed = score_from_answer(answer if isinstance(answer, dict) else {})
+        continuous = parsed["score_continuous"]
+        if continuous is None:
+            raise RuntimeError("systemone response missing usable score answer")
+        score = min(100, max(0, math.floor(float(continuous) + 0.5)))
+        return json.dumps(payload, sort_keys=True)[:2000] + f"\n{score}/100"
 
 
 def latency_stats(samples: list[float]) -> dict[str, float]:

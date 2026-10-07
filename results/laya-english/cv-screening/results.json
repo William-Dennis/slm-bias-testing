@@ -1,0 +1,8 @@
+{
+  "model": "laya-english",
+  "ollama_tag": "laya:421m-english-mlx-fp16",
+  "benchmark": "cv-screening",
+  "n_records": 480,
+  "mean_score": 52.50208333333333,
+  "std_score": 3.861376088359569
+}

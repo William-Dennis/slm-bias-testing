@@ -34,12 +34,12 @@ class TestRegistryImmutability:
             MODELS["smollm-135m"]["params"] = -1
 
 
-VALID_ARCHS = {"decoder-only", "hybrid-conv-attn"}
+VALID_ARCHS = {"decoder-only", "hybrid-conv-attn", "encoder-only"}
 
 
 class TestRegistryCompleteness:
     def test_all_models_have_required_fields(self):
-        required = {"ollama_tag", "params", "release_date", "family", "architecture"}
+        required = {"ollama_tag", "params", "release_date", "family", "architecture", "api"}
         for name, config in MODELS.items():
             assert required.issubset(config.keys()), (
                 f"Model {name} missing fields: {required - set(config.keys())}"
@@ -49,8 +49,45 @@ class TestRegistryCompleteness:
         for name, config in MODELS.items():
             assert config["params"] > 0, f"Model {name} has non-positive params"
 
-    def test_all_models_decoder_only(self):
+    def test_all_models_known_architecture(self):
         for name, config in MODELS.items():
             assert config["architecture"] in VALID_ARCHS, (
                 f"Model {name} has unexpected architecture: {config['architecture']}"
             )
+
+
+LAYA_MODELS = ("laya-english", "laya-multilingual", "laya-typed-decisions")
+
+
+class TestApiField:
+    def test_every_entry_declares_api(self):
+        for name, config in MODELS.items():
+            assert config["api"] in ("chat", "systemone"), f"Model {name} has bad api"
+
+    def test_non_laya_entries_are_chat(self):
+        for name, config in MODELS.items():
+            if name not in LAYA_MODELS:
+                assert config["api"] == "chat", f"Model {name} should be chat"
+
+    def test_laya_entries_exist_and_are_systemone(self):
+        for name in LAYA_MODELS:
+            assert name in MODELS
+            assert MODELS[name]["api"] == "systemone"
+
+    def test_laya_tags_are_unique(self):
+        tags = [MODELS[name]["ollama_tag"] for name in LAYA_MODELS]
+        assert len(set(tags)) == len(LAYA_MODELS)
+
+    def test_laya_metadata_facts(self):
+        expected = {
+            "laya-english": ("laya:421m-english-mlx-fp16", 421_000_000),
+            "laya-multilingual": ("laya:322m-multilingual-mlx-fp16", 322_000_000),
+            "laya-typed-decisions": ("laya:421m-typed-decisions-mlx-fp16", 421_000_000),
+        }
+        for name, (tag, params) in expected.items():
+            config = MODELS[name]
+            assert config["ollama_tag"] == tag
+            assert config["params"] == params
+            assert config["release_date"] == "2026-09"
+            assert config["family"] == "convai"
+            assert config["architecture"] == "encoder-only"
