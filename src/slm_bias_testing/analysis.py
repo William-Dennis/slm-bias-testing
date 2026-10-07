@@ -1,4 +1,11 @@
-"""Statistical analysis for CV screening benchmark."""
+"""Statistical analysis for CV screening benchmark.
+
+Repeated runs of the same CV are *not* independent observations. Every
+inference helper here (CIs, t-tests, effect sizes, variance breakdown)
+therefore collapses repeated runs to one observation per CV (mean across
+runs) before computing statistics — the CV is the sampling unit. Frames
+without a ``key`` column are treated as already independent.
+"""
 
 from __future__ import annotations
 
@@ -12,10 +19,53 @@ from scipy import stats as sp_stats
 logger = logging.getLogger(__name__)
 
 
-def group_summary(df: pd.DataFrame, group_col: str, score_col: str = "score") -> pd.DataFrame:
-    """Mean, std, count, and 95% CI per group."""
+def collapse_runs(
+    df: pd.DataFrame,
+    group_cols: list[str],
+    score_col: str = "score",
+    key_col: str = "key",
+) -> pd.DataFrame:
+    """Collapse repeated runs to one row per CV (mean score across runs).
+
+    Returns a frame with one row per ``key``: the mean score plus the first
+    value of each requested group column. Falls back to the input frame
+    unchanged when there is no key column (rows are already independent) or
+    when grouping by the key itself.
+    """
+    if df.empty or score_col not in df.columns or key_col not in df.columns:
+        return df
+    keep = [c for c in group_cols if c in df.columns and c != key_col]
+    if not keep:
+        return df
+    agg: dict[str, str] = {score_col: "mean"}
+    agg.update({col: "first" for col in keep})
+    return df.groupby(key_col, sort=True).agg(agg).reset_index(drop=True)
+
+
+def _for_inference(
+    df: pd.DataFrame, group_cols: list[str], score_col: str, key_col: str | None
+) -> pd.DataFrame:
+    """Frame ready for inference: collapsed to CV-level when clustering applies."""
+    if key_col is None:
+        return df
+    return collapse_runs(df, group_cols, score_col, key_col)
+
+
+def group_summary(
+    df: pd.DataFrame,
+    group_col: str,
+    score_col: str = "score",
+    cluster_col: str | None = "key",
+) -> pd.DataFrame:
+    """Mean, std, count, and 95% CI per group — over CVs, not raw runs.
+
+    Repeated runs are collapsed with :func:`collapse_runs` first, so
+    ``count`` is the number of independent CVs and the CI reflects between-CV
+    spread instead of treating every run as an independent sample.
+    """
     if group_col not in df.columns or df[group_col].isna().all():
         return pd.DataFrame()
+    df = _for_inference(df, [group_col], score_col, cluster_col)
     groups = df.groupby(group_col)[score_col]
     summary = groups.agg(["mean", "std", "count"])
     confidence = 0.95
@@ -47,17 +97,29 @@ def cohens_d(series1: pd.Series, series2: pd.Series) -> float:
 
 
 def pairwise_comparisons(
-    df: pd.DataFrame, group_col: str, score_col: str = "score"
+    df: pd.DataFrame,
+    group_col: str,
+    score_col: str = "score",
+    cluster_col: str | None = "key",
 ) -> pd.DataFrame:
-    """Cohen's d and t-test for all pairs of groups."""
+    """Cohen's d and Welch t-test for all pairs of groups, with Holm correction.
+
+    Groups are ordered by string value so results do not depend on row
+    order; ``cohens_d`` is ``mean(group1) - mean(group2)`` for
+    ``group1 < group2``, making the sign stable across runs. Repeated runs
+    are collapsed to per-CV means first (see :func:`collapse_runs`), and
+    ``p_holm`` holds Holm-Bonferroni adjusted p-values across every pair
+    tested here (``p_value`` stays the raw Welch p).
+    """
     if group_col not in df.columns:
         return pd.DataFrame()
-    groups = df[group_col].dropna().unique()
+    df = _for_inference(df, [group_col], score_col, cluster_col)
+    groups = sorted(df[group_col].dropna().unique(), key=str)
     if len(groups) < 2:
         return pd.DataFrame()
     # Pre-split to avoid redundant boolean masks per pair
     grouped = {g: df.loc[df[group_col] == g, score_col].dropna() for g in groups}
-    rows = []
+    rows: list[dict[str, Any]] = []
     for i in range(len(groups)):
         for j in range(i + 1, len(groups)):
             g1 = grouped[groups[i]]
@@ -73,22 +135,44 @@ def pairwise_comparisons(
                     "group2": groups[j],
                     "cohens_d": round(d, 3),
                     "t_statistic": round(t_stat, 3),
-                    "p_value": round(p_val, 4),
+                    "p_value": float(p_val),
                     "mean1": round(g1.mean(), 2),
                     "mean2": round(g2.mean(), 2),
                     "n1": len(g1),
                     "n2": len(g2),
                 }
             )
+
+    n_pairs = len(rows)
+    order = sorted(range(n_pairs), key=lambda idx: rows[idx]["p_value"])
+    running = 0.0
+    adjusted = [0.0] * n_pairs
+    for rank, idx in enumerate(order):
+        p_value = rows[idx]["p_value"]
+        candidate = 1.0 if np.isnan(p_value) else min(1.0, (n_pairs - rank) * p_value)
+        running = max(running, candidate)
+        adjusted[idx] = running
+    for idx, row in enumerate(rows):
+        row["p_value"] = round(row["p_value"], 4)
+        row["p_holm"] = round(adjusted[idx], 4)
     return pd.DataFrame(rows)
 
 
 def variance_breakdown(
-    df: pd.DataFrame, factors: list[str], score_col: str = "score"
+    df: pd.DataFrame,
+    factors: list[str],
+    score_col: str = "score",
+    cluster_col: str | None = "key",
 ) -> dict[str, Any]:
-    """Proportion of total variance explained by each factor."""
+    """Proportion of total variance explained by each factor.
+
+    Computed over per-CV means (repeated runs collapsed — see
+    :func:`collapse_runs`) so within-CV sampling noise does not inflate the
+    denominator. Values are raw floats; round for display only.
+    """
     if score_col not in df.columns:
         return {}
+    df = _for_inference(df, factors, score_col, cluster_col)
     total_var = df[score_col].var(ddof=0)
     if total_var == 0:
         return {}
@@ -102,8 +186,8 @@ def variance_breakdown(
         group_counts = df.groupby(factor)[score_col].count()
         between_var = (group_counts * (group_means - grand_mean) ** 2).sum() / n_total
         results[factor] = {
-            "variance_explained": round(between_var, 3),
-            "proportion": round(between_var / total_var, 4),
+            "variance_explained": float(between_var),
+            "proportion": float(between_var / total_var),
         }
     return results
 
@@ -147,9 +231,13 @@ def build_summary_table(df: pd.DataFrame, group_cols: list[str], score_col: str 
         )
 
     lines.append("\n--- Overall ---")
-    lines.append(f"  N observations: {len(df)}")
+    n_cvs = df["key"].nunique() if "key" in df.columns else len(df)
+    lines.append(f"  N rows (CV x run): {len(df)}")
+    lines.append(f"  N CVs (independent units): {n_cvs}")
     lines.append(f"  Overall mean score: {df[score_col].mean():.2f}")
     lines.append(f"  Overall std: {df[score_col].std():.2f}")
+    lines.append("  Note: CIs, t-tests and effect sizes below are computed over")
+    lines.append("  per-CV means (repeated runs collapsed), not raw runs.")
 
     for col in group_cols:
         if col not in df.columns or df[col].isna().all():
@@ -164,8 +252,18 @@ def build_summary_table(df: pd.DataFrame, group_cols: list[str], score_col: str 
 
         pw = pairwise_comparisons(df, col, score_col)
         if not pw.empty:
-            lines.append("\nPairwise comparisons:")
-            display_cols = ["group1", "group2", "cohens_d", "p_value", "mean1", "mean2", "n1", "n2"]
+            lines.append("\nPairwise comparisons (p_holm = Holm-Bonferroni adjusted):")
+            display_cols = [
+                "group1",
+                "group2",
+                "cohens_d",
+                "p_value",
+                "p_holm",
+                "mean1",
+                "mean2",
+                "n1",
+                "n2",
+            ]
             lines.append(pw[display_cols].to_string(index=False))
 
     # Variance breakdown
