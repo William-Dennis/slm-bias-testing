@@ -3,6 +3,12 @@
 /records.csv
 /plots
 
+# Web UI
+web/node_modules/
+web/dist/
+playwright-report/
+test-results/
+
 # Generated figures
 # figs/ is committed — it holds the README result charts
 
