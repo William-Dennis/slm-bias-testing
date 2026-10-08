@@ -57,6 +57,7 @@ class TestRegistryCompleteness:
 
 
 LAYA_MODELS = ("laya-english", "laya-multilingual", "laya-typed-decisions")
+SYSTEMONE_MODELS = (*LAYA_MODELS, "nimble")
 
 
 class TestApiField:
@@ -64,19 +65,27 @@ class TestApiField:
         for name, config in MODELS.items():
             assert config["api"] in ("chat", "systemone"), f"Model {name} has bad api"
 
-    def test_non_laya_entries_are_chat(self):
+    def test_non_systemone_entries_are_chat(self):
         for name, config in MODELS.items():
-            if name not in LAYA_MODELS:
+            if name not in SYSTEMONE_MODELS:
                 assert config["api"] == "chat", f"Model {name} should be chat"
 
-    def test_laya_entries_exist_and_are_systemone(self):
-        for name in LAYA_MODELS:
+    def test_systemone_entries_exist_and_are_systemone(self):
+        for name in SYSTEMONE_MODELS:
             assert name in MODELS
             assert MODELS[name]["api"] == "systemone"
 
-    def test_laya_tags_are_unique(self):
-        tags = [MODELS[name]["ollama_tag"] for name in LAYA_MODELS]
-        assert len(set(tags)) == len(LAYA_MODELS)
+    def test_systemone_tags_are_unique(self):
+        tags = [MODELS[name]["ollama_tag"] for name in SYSTEMONE_MODELS]
+        assert len(set(tags)) == len(SYSTEMONE_MODELS)
+
+    def test_nimble_metadata_facts(self):
+        config = MODELS["nimble"]
+        assert config["ollama_tag"] == "nimble"
+        assert config["params"] == 9_000_000_000
+        assert config["release_date"] == "2026-09"
+        assert config["family"] == "bespoke"
+        assert config["architecture"] == "decoder-only"
 
     def test_laya_metadata_facts(self):
         expected = {

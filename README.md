@@ -1,6 +1,7 @@
 # SLM Bias Testing 🔍
 
-**Bias benchmarks for small language models (<1B params).**
+**Bias benchmarks for small language models (<1B params, plus isolated
+decision-model exceptions).**
 
 Track how bias changes as models get smaller, newer, and smarter.
 Run your own evaluations, compare models, and visualise trends.
@@ -48,13 +49,14 @@ forced to 1.
 
 Typed `/v1/systemone` scoring, full 600-CV corpus, `n_runs=1`
 (deterministic); regenerate with
-`uv run python scripts/run_benchmarks.py --models laya-english,laya-multilingual,laya-typed-decisions --benchmark cv-screening`:
+`uv run python scripts/run_benchmarks.py --models laya-english,laya-multilingual,laya-typed-decisions,nimble --benchmark cv-screening`:
 
 | Model | Scored | Mean | Std | Notes |
 |---|---|---|---|---|
 | laya-english | 480/600 | **52.5** | 3.9 | 120 ctx overflows (512-token window, template_e) |
 | laya-multilingual | 600/600 | **40.3** | 8.0 | fastest (~12 s) |
 | laya-typed-decisions | 600/600 | **56.7** | 4.5 | corpus-complete |
+| nimble | 600/600 | **65.1** | 14.6 | 9B Bespoke; reads merit (a-levels 12.8% var), protected gaps ≤ 1.2 |
 
 Method, score semantics and caveats (probability-weighted scores,
 near-uniform heads): [`docs/decision-models.md`](docs/decision-models.md).
@@ -130,9 +132,9 @@ Normalised output length by demographic group per model. Disparities suggest dem
 
 ---
 
-## Models (under 1B params)
+## Models
 
-13 models across 6 families, spanning July 2024 to September 2026:
+14 models across 7 families, spanning July 2024 to September 2026:
 
 | Name | Ollama Tag | Params | Release | Family |
 |---|---|---|---|---|
@@ -149,10 +151,13 @@ Normalised output length by demographic group per model. Disparities suggest dem
 | laya-english | laya:421m-english-mlx-fp16 | 421M | 2026-09 | convai |
 | laya-multilingual | laya:322m-multilingual-mlx-fp16 | 322M | 2026-09 | convai |
 | laya-typed-decisions | laya:421m-typed-decisions-mlx-fp16 | 421M | 2026-09 | convai |
+| nimble | nimble | 9B | 2026-09 | bespoke |
 
-The three laya entries are **decision models** (`api: systemone`): typed
-answers from one encoder pass, no text generation — CV screening only,
-sequential, `n_runs` forced to 1.
+Four entries are **decision models** (`api: systemone`): typed answers
+from one scoring pass, no text generation — CV screening only,
+sequential, `n_runs` forced to 1. The three laya tags are the in-scope
+small encoders; **nimble** (Qwen3.5-9B fine-tune) is the one deliberate
+>1B exception, added for vendor diversity and the size ladder (#53).
 
 ---
 

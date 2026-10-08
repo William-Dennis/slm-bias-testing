@@ -36,6 +36,7 @@ CONTEXT_LIMITS: dict[str, int] = {
     "laya:421m-english-mlx-fp16": 512,
     "laya:322m-multilingual-mlx-fp16": 1024,
     "laya:421m-typed-decisions-mlx-fp16": 1024,
+    "nimble": 8192,
 }
 
 

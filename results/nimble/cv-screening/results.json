@@ -1,0 +1,8 @@
+{
+  "model": "nimble",
+  "ollama_tag": "nimble",
+  "benchmark": "cv-screening",
+  "n_records": 600,
+  "mean_score": 65.13666666666667,
+  "std_score": 14.629811157806424
+}
