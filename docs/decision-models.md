@@ -234,9 +234,11 @@ Three findings that shape everything downstream:
 ## Integration: decision models as benchmark models
 
 `api: "systemone"` models run the CV-screening benchmark through the same
-records/analysis pipeline as chat models (issue #46). Three registry
-entries — `laya-english`, `laya-multilingual`, `laya-typed-decisions` —
-carry the new required `ModelMeta.api` field (`"chat"` for everything
+records/analysis pipeline as chat models (issue #46). Four registry
+entries — `laya-english`, `laya-multilingual`, `laya-typed-decisions`
+(Convai, encoder-only) and `nimble` (Bespoke, 9B decoder-only, the one
+deliberate >1B exception to the small-model framing, issue #53) —
+carry the required `ModelMeta.api` field (`"chat"` for everything
 else).
 
 | piece | choice |
@@ -246,27 +248,65 @@ else).
 | state | `decision_base_frame()` + the existing `cv_prompt()` = `decision_state()` byte-for-byte (all 600 corpus CVs verified); no second prompt builder |
 | determinism | `n_runs` is **forced to 1** (explicit `--n-runs > 1` is rejected before the run) — repeated runs add nothing, per the spike's byte-identical finding |
 | pool | skipped: the Node.js pool speaks the chat API only; sequential `SystemOneClient` calls take 12–20 s per full corpus anyway |
-| scope | CV screening only — laya cannot generate text, so stereoset/winobias/demographic-bias are skipped with a logged error |
+| scope | CV screening only — decision models cannot generate text, so stereoset/winobias/demographic-bias are skipped with a logged error |
 | provenance | `cv-screening.json` records `"api": "systemone"` and `temperature: null` (ignored by the protocol) |
 
 ### Committed results (`results/{model}/cv-screening/`)
 
 Full 600-CV corpus, `n_runs=1`, rerun with
-`uv run python scripts/run_benchmarks.py --models laya-english,laya-multilingual,laya-typed-decisions --benchmark cv-screening`:
+`uv run python scripts/run_benchmarks.py --models laya-english,laya-multilingual,laya-typed-decisions,nimble --benchmark cv-screening`:
 
 | model | scored | mean (int score) | std | attrition |
 |---|---|---|---|---|
 | `laya-english` | 480/600 | 52.5 | 3.9 | 120 ctx errors (all template_e, 512-token window) |
 | `laya-multilingual` | 600/600 | 40.3 | 8.0 | — |
 | `laya-typed-decisions` | 600/600 | 56.7 | 4.5 | — |
+| `nimble` (9B) | 600/600 | 65.1 | 14.6 | — (8192-token window) |
 
-Means match the v2 sweep's `score_continuous` means to 0.1 — the benchmark
-path is the same instrument. First-look factor separation repeats the
-sweep finding: demographic deltas ≤ 0.3 points, `template_name` explains
-~99% of variance (see each model's `analysis_summary.txt` for group CIs,
-Holm-corrected pairwise tests and the variance breakdown). Whether that
-demographic insensitivity is real or a sensitivity limit of the
-near-uniform head remains the open analysis question.
+Means match the v2 sweep's `score_continuous` means to 0.1 for the laya
+tags — the benchmark path is the same instrument. Each model's
+`analysis_summary.txt` has the group CIs, Holm-corrected pairwise tests
+and variance breakdown.
+
+### Four-model bias comparison: protected vs merit factors
+
+The benchmark's factor set mixes two kinds of signal: **protected
+proxies** (`name_gender`, `name_ethnicity`) and **merit factors**
+(`university_prestige`, `a_level_quality` — a recruiter *should* weigh
+these). Splitting them changes the reading:
+
+| model | protected: max gap | max \|d\| | sig pairs | merit: max gap | max \|d\| | sig pairs |
+|---|---|---|---|---|---|---|
+| `laya-english` | 0.65 | 0.168 | 0 | 0.54 | 0.139 | 0 |
+| `laya-multilingual` | 0.81 | 0.099 | 0 | 0.40 | 0.050 | 0 |
+| `laya-typed-decisions` | 0.29 | 0.066 | 0 | 0.16 | 0.034 | 0 |
+| `nimble` (9B) | **1.17** | 0.080 | 0 | **11.91** | **0.897** | **2** |
+
+(sig = Holm-corrected p < 0.05 over all pairwise comparisons in the
+factor.)
+
+Findings:
+
+1. **No model shows significant protected-attribute bias** — zero
+   Holm-significant gender/ethnicity pairs anywhere; worst protected
+   effect is trivial (|d| = 0.17, laya-english). nimble's largest
+   protected gap (1.17, ethnicity) is non-significant and points
+   *black-african highest, white-british lowest* — no anti-protected
+   direction.
+2. **nimble is the first decision model that reads merit**: a-level
+   quality separates its scores (high 69.7 vs low 57.8, d = 0.90,
+   p_holm ≈ 0; university prestige +2.9), and its std (14.6 vs laya's
+   3.9–8.0) shows real cross-CV spread. `a_level_quality` explains
+   12.8% of its variance (laya: ≤ 0.04%).
+3. **laya's flatness is instrument sensitivity, not proven fairness** —
+   its near-uniform heads ignore *everything* content-shaped
+   (merit gaps ≤ 0.54, n.s.; template still dominates), so "no bias"
+   there remains the floor-effect caveat from the v2 sweep. nimble's
+   pattern — strong merit sensitivity, protected deltas ≤ 1.17 — is
+   what an unbiased-but-attentive screener looks like.
+
+Caveat: operating points differ (means 40–65), and laya-english scores
+480/600 — compare structures, not absolute scores.
 
 ## Reproducing the spike
 

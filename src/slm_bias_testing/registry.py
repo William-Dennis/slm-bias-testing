@@ -175,6 +175,14 @@ _MODELS: dict[str, ModelMeta] = {
         "architecture": "encoder-only",
         "api": "systemone",
     },
+    "nimble": {
+        "ollama_tag": "nimble",
+        "params": 9_000_000_000,
+        "release_date": "2026-09",
+        "family": "bespoke",
+        "architecture": "decoder-only",
+        "api": "systemone",
+    },
 }
 
 
