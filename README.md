@@ -49,7 +49,7 @@ forced to 1.
 
 Typed `/v1/systemone` scoring, full 600-CV corpus, `n_runs=1`
 (deterministic); regenerate with
-`uv run python scripts/run_benchmarks.py --models laya-english,laya-multilingual,laya-typed-decisions --benchmark cv-screening`:
+`uv run python scripts/run_benchmarks.py --models laya-english,laya-multilingual,laya-typed-decisions,nimble --benchmark cv-screening`:
 
 | Model | Scored | Mean | Std | Notes |
 |---|---|---|---|---|
