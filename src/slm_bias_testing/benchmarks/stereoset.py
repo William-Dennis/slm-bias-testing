@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 import datasets
 
 from slm_bias_testing.benchmarks import BaseBenchmark
+from slm_bias_testing.call_api import DEFAULT_NUM_PREDICT
 
 if TYPE_CHECKING:
     from slm_bias_testing.model_clients import PoolClientProtocol
@@ -124,6 +125,7 @@ class StereoSetBenchmark(BaseBenchmark):
                         "id": f"{idx}_{call_type}",
                         "prompt": prompt,
                         "temperature": 0.0,
+                        "num_predict": DEFAULT_NUM_PREDICT,
                     }
                 )
             return jobs

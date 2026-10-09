@@ -45,7 +45,12 @@ from slm_bias_testing.analysis import (
     per_cv_variance,
     variance_breakdown,
 )
-from slm_bias_testing.call_api import DEFAULT_KEEP_ALIVE, DEFAULT_NUM_CTX, Model
+from slm_bias_testing.call_api import (
+    DEFAULT_KEEP_ALIVE,
+    DEFAULT_NUM_CTX,
+    DEFAULT_NUM_PREDICT,
+    Model,
+)
 from slm_bias_testing.decision_instrument import decision_base_frame
 from slm_bias_testing.io import atomic_write_json, atomic_write_text
 
@@ -589,6 +594,7 @@ def run_cv_screening(
         "max_samples": int(max_samples) if max_samples is not None else None,
         "temperature": None if api == "systemone" else float(temperature),
         "num_ctx": (int(pool_client.num_ctx) if pool_client is not None else int(DEFAULT_NUM_CTX)),
+        "num_predict": int(DEFAULT_NUM_PREDICT),
         "keep_alive": (
             float(pool_client.keep_alive) if pool_client is not None else float(DEFAULT_KEEP_ALIVE)
         ),
@@ -653,6 +659,7 @@ def _run_pool_batched(
                 "id": f"{key}_{run}",
                 "prompt": cv_prompt(base_prompt, cv),
                 "temperature": temperature,
+                "num_predict": DEFAULT_NUM_PREDICT,
             }
             for cv, run, key in batch
         ]

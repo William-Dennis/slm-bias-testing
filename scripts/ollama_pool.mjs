@@ -9,7 +9,7 @@
  *   echo '{"id":"test","model":"smollm:135m","prompt":"Say hi"}' | node ollama_pool.mjs --max-pool 4
  *
  * Protocol:
- *   Job:    {"id":"...","model":"...","prompt":"...","temperature":0.0,"num_ctx":2048,"keep_alive":30}
+ *   Job:    {"id":"...","model":"...","prompt":"...","temperature":0.0,"num_ctx":2048,"keep_alive":30,"num_predict":24}
  *   Result: {"id":"...","response":"...","error":null,"latency_ms":1234}
  */
 
@@ -176,7 +176,11 @@ async function dispatchJob(job) {
         model: job.model,
         messages: [{ role: "user", content: job.prompt }],
         stream: false,
-        options: { temperature: job.temperature ?? 0.0, num_ctx: job.num_ctx ?? 2048 },
+        options: {
+        temperature: job.temperature ?? 0.0,
+        num_ctx: job.num_ctx ?? 2048,
+        num_predict: job.num_predict ?? 24,
+      },
         keep_alive: job.keep_alive ?? 30,
       };
       const response = await httpPost(url.toString(), body);

@@ -185,6 +185,27 @@ uv run python -m slm_bias_testing.temporal
 
 ---
 
+## Web UI (demo)
+
+A dark-first React + TypeScript app for exploring evaluations: dashboard,
+models, benchmarks, experiment runner, model comparison, counterfactual task
+explorer, and insights — with ⌘K search and an aggregate → evidence trail
+on every screen.
+
+```bash
+cd web && npm install && npm run dev
+```
+
+All numbers in the UI are **synthetic demo data** (`is_synthetic = true` at
+record level) illustrating researcher workflows — not real benchmark results.
+The 20-model catalog and the 4 instrumented benchmark definitions mirror the
+Python package; statistics shown (Wilson/Newcombe intervals, Holm-adjusted
+p-values, effect sizes) are computed, never hand-typed. See
+[`web/README.md`](web/README.md); QA screenshots live in
+`web/.qa/screenshots/`.
+
+---
+
 ## Outputs
 
 ```

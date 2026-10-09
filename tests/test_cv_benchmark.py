@@ -5,6 +5,7 @@ import re
 
 import pytest
 
+from slm_bias_testing.call_api import DEFAULT_NUM_PREDICT
 from slm_bias_testing.cv_screening import (
     STATUS_API_ERROR,
     STATUS_OK,
@@ -234,6 +235,7 @@ class TestRunBenchmark:
         assert provenance["package_version"] is not None
         assert provenance["n_runs"] == 2
         assert provenance["temperature"] == 1.0
+        assert provenance["num_predict"] == DEFAULT_NUM_PREDICT
         assert len(provenance["prompt_sha256"]) == 64
         assert provenance["timestamp"]
 
@@ -308,11 +310,13 @@ class FakePool:
     def __init__(self, responder=None):
         self.responder = responder
         self.job_ids: list[str] = []
+        self.jobs: list[dict] = []
 
     def predict_batch(self, jobs):
         results = {}
         for job in jobs:
             self.job_ids.append(job["id"])
+            self.jobs.append(job)
             if self.responder is None:
                 results[job["id"]] = {
                     "response": default_responder(job["prompt"]),
@@ -365,6 +369,12 @@ class TestRunCvScreeningPool:
         df = self._run(tmp_path, small_cvs, resumed, n_runs=2)
         assert resumed.job_ids == []
         assert len(df) == 64
+
+    def test_pool_jobs_carry_num_predict(self, tmp_path, small_cvs):
+        pool = FakePool()
+        self._run(tmp_path, small_cvs, pool, n_runs=1)
+        assert pool.jobs
+        assert all(job["num_predict"] == DEFAULT_NUM_PREDICT for job in pool.jobs)
 
     def test_pool_errors_not_marked_seen(self, tmp_path, small_cvs):
         pool = FakePool(lambda job: {"response": None, "error": "boom"})

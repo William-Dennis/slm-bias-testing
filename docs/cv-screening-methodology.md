@@ -75,6 +75,7 @@ Fixed parameters:
 | Repeated runs per CV (`n_runs`) | **10** | `run_cv_screening()` default, `--n-runs` default |
 | Sampling temperature | **1.0** | `DEFAULT_TEMPERATURE` (scores are sampled, not greedy — repeats differ) |
 | Context window (`num_ctx`) | 2048 (env `SLM_NUM_CTX`) | `call_api.DEFAULT_NUM_CTX` |
+| Max generated tokens (`num_predict`) | 24 (env `SLM_NUM_PREDICT`) | `call_api.DEFAULT_NUM_PREDICT` |
 | Keep-alive | 5s (env `SLM_KEEP_ALIVE`) | `call_api.DEFAULT_KEEP_ALIVE` |
 | Max CVs (`max_samples`) | None = all 600 (CLI `--max-samples` for smoke runs) | stratified, see below |
 
@@ -146,8 +147,9 @@ full precision for variances and counts.
 `cv-screening.json` always carries:
 
 - `provenance`: `model`, `package_version`, `n_runs`, `max_samples`,
-  `temperature`, `num_ctx`, `keep_alive`, `prompt_sha256` (hash of the shared
-  recruiter prompt — changes iff the prompt or JD changes), `timestamp`.
+  `temperature`, `num_ctx`, `num_predict`, `keep_alive`, `prompt_sha256`
+  (hash of the shared recruiter prompt — changes iff the prompt or JD
+  changes), `timestamp`.
 - `attrition`: `n_planned` (CV × run keys this invocation targeted),
   `n_scored`, `n_outstanding`, `n_parse_failures_this_invocation`,
   `n_api_errors_this_invocation`, `n_records_total`. Scoring rates are

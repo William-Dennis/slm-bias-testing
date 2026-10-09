@@ -4,9 +4,13 @@ from unittest.mock import patch
 import pytest
 
 from slm_bias_testing.benchmarks import BaseBenchmark
-from slm_bias_testing.benchmarks.demographic_bias import DemographicBiasBenchmark
+from slm_bias_testing.benchmarks.demographic_bias import (
+    DEMOGRAPHIC_NUM_PREDICT,
+    DemographicBiasBenchmark,
+)
 from slm_bias_testing.benchmarks.stereoset import StereoSetBenchmark
 from slm_bias_testing.benchmarks.winobias import WinoBiasBenchmark
+from slm_bias_testing.call_api import DEFAULT_NUM_PREDICT
 
 
 class TestBaseBenchmark:
@@ -64,10 +68,12 @@ class MockPoolClient:
         self.model_name = "test-model"
         self.pool_size = batch_size
         self.batch_timeout = 300
+        self.jobs: list[dict] = []
 
     def predict_batch(self, jobs: list[dict]) -> dict[str, dict]:
         results = {}
         for job in jobs:
+            self.jobs.append(job)
             prompt = job["prompt"]
             response = "50"
             for key, val in self.responses.items():
@@ -532,6 +538,65 @@ class TestWinoBiasPool:
                 assert results["overall_accuracy"] == 100.0
 
 
+class TestJobNumPredictCaps:
+    """Every job sent to the pool carries an explicit num_predict cap."""
+
+    def test_stereoset_jobs_capped(self):
+        fake_data = [
+            _make_stereoset_item(
+                "test1",
+                "gender",
+                "doctor",
+                "The doctor entered.",
+                "He is skilled.",
+                "She is skilled.",
+            )
+        ]
+        pool = MockPoolClient()
+        with patch.object(StereoSetBenchmark, "load_dataset", return_value=fake_data):
+            StereoSetBenchmark().evaluate(None, pool_client=pool)
+        assert pool.jobs
+        assert all(job["num_predict"] == DEFAULT_NUM_PREDICT for job in pool.jobs)
+
+    def test_winobias_jobs_capped(self):
+        fake_data = [
+            _make_winobias_item(
+                0,
+                "type1_pro",
+                ["The", "developer", "told", "the", "nurse", "that", "she", "was", "late"],
+                ["3", "4", "6"],
+            )
+        ]
+        pool = MockPoolClient({"she": "nurse"})
+        with (
+            patch.object(WinoBiasBenchmark, "load_dataset", return_value=fake_data),
+            patch.object(
+                WinoBiasBenchmark, "_get_occupations", return_value={"developer", "nurse"}
+            ),
+        ):
+            WinoBiasBenchmark().evaluate(None, pool_client=pool)
+        assert pool.jobs
+        assert all(job["num_predict"] == DEFAULT_NUM_PREDICT for job in pool.jobs)
+
+    def test_demographic_jobs_use_larger_cap(self):
+        pool = MockPoolClient()
+        with patch.object(
+            DemographicBiasBenchmark,
+            "load_dataset",
+            return_value=[
+                {
+                    "prompt": "The man walked into the room and",
+                    "group": "gender_male",
+                    "term": "man",
+                }
+            ],
+        ):
+            DemographicBiasBenchmark().evaluate(None, pool_client=pool)
+        assert pool.jobs
+        assert all(job["num_predict"] == DEMOGRAPHIC_NUM_PREDICT for job in pool.jobs)
+        assert DEMOGRAPHIC_NUM_PREDICT > DEFAULT_NUM_PREDICT
+
+
 class TestPoolClientRequired:
     """Verify that benchmarks raise ValueError when pool_client is None."""
 
@@ -558,7 +623,7 @@ class _SequentialStubModel:
         self.answers = answers
         self.prompts: list[str] = []
 
-    def predict(self, prompt: str, temperature: float = 0.0) -> str:
+    def predict(self, prompt: str, temperature: float = 0.0, num_predict: int | None = None) -> str:
         self.prompts.append(prompt)
         for key, val in self.answers.items():
             if key in prompt:
