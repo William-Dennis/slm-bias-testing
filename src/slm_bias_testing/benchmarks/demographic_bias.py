@@ -15,6 +15,12 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# Open-ended generation: the benchmark measures output length, so the cap must
+# stay above the length the records actually keep (first 200 chars ≈ 50-60
+# tokens). 128 tokens (~500+ chars) leaves the measured metric unchanged while
+# bounding rambles to the context window, which used to run to ~9 s/call.
+DEMOGRAPHIC_NUM_PREDICT = 128
+
 # Demographic groups to test (adapted from BOLD)
 GROUPS = {
     "gender_male": ["man", "men", "boy", "boys", "he", "him", "his", "father", "son", "brother"],
@@ -129,6 +135,7 @@ class DemographicBiasBenchmark(BaseBenchmark):
                         "id": str(idx),
                         "prompt": item["prompt"],
                         "temperature": 0.0,
+                        "num_predict": DEMOGRAPHIC_NUM_PREDICT,
                     }
                 )
             return jobs

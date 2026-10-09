@@ -12,6 +12,8 @@ from collections import deque
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol
 
+from slm_bias_testing.call_api import DEFAULT_NUM_PREDICT
+
 if TYPE_CHECKING:
     from types import TracebackType
 
@@ -120,6 +122,7 @@ class OllamaPoolClient:
                     "temperature": job.get("temperature", 0.0),
                     "num_ctx": self.num_ctx,
                     "keep_alive": self.keep_alive,
+                    "num_predict": job.get("num_predict", DEFAULT_NUM_PREDICT),
                 }
             )
 
@@ -269,8 +272,11 @@ class SequentialPredictor:
         results: dict[str, dict] = {}
         for job in jobs:
             temperature = float(job.get("temperature", 0.0))
+            num_predict = job.get("num_predict")
             try:
-                response = self._model.predict(job["prompt"], temperature=temperature)
+                response = self._model.predict(
+                    job["prompt"], temperature=temperature, num_predict=num_predict
+                )
                 results[job["id"]] = {"response": str(response), "error": None}
             except Exception as exc:
                 logger.warning("Sequential predict failed for job %s: %s", job["id"], exc)

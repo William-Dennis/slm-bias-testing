@@ -22,6 +22,14 @@ DEFAULT_NUM_CTX = max(256, min(131072, int(os.environ.get("SLM_NUM_CTX", "2048")
 # Longer values reduce model reload overhead across sequential benchmark items.
 DEFAULT_KEEP_ALIVE = max(0.0, min(300.0, float(os.environ.get("SLM_KEEP_ALIVE", "5"))))
 
+# Max tokens to generate per call. The scored/classified prompts used by
+# cv-screening, stereoset and winobias expect short answers; without a cap,
+# small models ramble to the context window (measured ~7-9 s/call for the
+# 135M SmolLM pair on CV prompts). demographic-bias overrides it with a
+# larger cap — see DEMOGRAPHIC_NUM_PREDICT there. Must stay in sync with the
+# fallback in scripts/ollama_pool.mjs.
+DEFAULT_NUM_PREDICT = max(1, min(4096, int(os.environ.get("SLM_NUM_PREDICT", "24"))))
+
 
 class OllamaClient:
     """Thin wrapper around an Ollama client with auto-restart on failure."""
@@ -61,15 +69,23 @@ class Model:
         ollama_client: OllamaClient | None = None,
         num_ctx: int | None = None,
         keep_alive: float | None = None,
+        num_predict: int | None = None,
     ) -> None:
         self.model_name = model_name
         self.num_ctx = num_ctx if num_ctx is not None else DEFAULT_NUM_CTX
         self.keep_alive = keep_alive if keep_alive is not None else DEFAULT_KEEP_ALIVE
+        self.num_predict = num_predict if num_predict is not None else DEFAULT_NUM_PREDICT
         self._ollama_client = ollama_client or OllamaClient()
         self._ollama_client.ensure_running()
 
-    def predict(self, input_text: str, temperature: float = 0.0) -> str:
-        """Run a single prediction via Ollama."""
+    def predict(
+        self, input_text: str, temperature: float = 0.0, num_predict: int | None = None
+    ) -> str:
+        """Run a single prediction via Ollama.
+
+        ``num_predict=None`` uses the instance default; pass a value to
+        override per call (the pool path passes the job's cap through here).
+        """
         max_retries = 3
         start = time.monotonic()
         last_error: Exception | None = None
@@ -81,6 +97,9 @@ class Model:
                     options={
                         "temperature": temperature,
                         "num_ctx": self.num_ctx,
+                        "num_predict": (
+                            num_predict if num_predict is not None else self.num_predict
+                        ),
                     },
                     keep_alive=self.keep_alive,
                 )

@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 from slm_bias_testing.call_api import (
     DEFAULT_KEEP_ALIVE,
     DEFAULT_NUM_CTX,
+    DEFAULT_NUM_PREDICT,
     Model,
     OllamaClient,
 )
@@ -42,13 +43,15 @@ class TestModelInit:
         assert model.model_name == "some-model"
         assert model.num_ctx == DEFAULT_NUM_CTX
         assert model.keep_alive == DEFAULT_KEEP_ALIVE
+        assert model.num_predict == DEFAULT_NUM_PREDICT
 
     def test_model_init_custom(self):
         with patch.object(OllamaClient, "ensure_running"):
-            model = Model(model_name="custom-model", num_ctx=4096, keep_alive=10.0)
+            model = Model(model_name="custom-model", num_ctx=4096, keep_alive=10.0, num_predict=64)
         assert model.model_name == "custom-model"
         assert model.num_ctx == 4096
         assert model.keep_alive == 10.0
+        assert model.num_predict == 64
 
     def test_model_init_with_custom_client(self):
         mock_client = MagicMock(spec=OllamaClient)
@@ -67,10 +70,21 @@ class TestModelPredict:
         model = Model(model_name="test", ollama_client=mock_client)
         result = model.predict("score this", temperature=0.5)
         assert result == "42/100"
-        # Verify num_ctx and keep_alive are passed through
+        # Verify num_ctx, num_predict and keep_alive are passed through
         call_kwargs = mock_client.client.chat.call_args
         assert call_kwargs.kwargs["options"]["num_ctx"] == DEFAULT_NUM_CTX
+        assert call_kwargs.kwargs["options"]["num_predict"] == DEFAULT_NUM_PREDICT
         assert call_kwargs.kwargs["keep_alive"] == DEFAULT_KEEP_ALIVE
+
+    def test_predict_num_predict_override(self):
+        mock_client = MagicMock(spec=OllamaClient)
+        mock_client.ensure_running = MagicMock()
+        mock_client.client = MagicMock()
+        mock_client.client.chat.return_value = {"message": {"content": "ok"}}
+        model = Model(model_name="test", ollama_client=mock_client)
+        model.predict("hello", num_predict=8)
+        call_kwargs = mock_client.client.chat.call_args
+        assert call_kwargs.kwargs["options"]["num_predict"] == 8
 
     def test_predict_retries_on_failure(self):
         mock_client = MagicMock(spec=OllamaClient)
